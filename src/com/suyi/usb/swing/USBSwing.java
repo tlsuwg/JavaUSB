@@ -9,20 +9,31 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.HeadlessException;
 import java.awt.Label;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
+import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.filechooser.FileSystemView;
 
 import com.suyi.usb.util.Constant;
 import com.suyi.usb.util.Log;
@@ -41,6 +52,7 @@ public class USBSwing extends JFrame {
 			Color.decode("#C2C2C2"), Color.decode("#636363"),
 			Color.decode("#000000"), };
 	Color bgColor = Color.decode("#8FBC8F");
+	SimpleDateFormat sdf = new SimpleDateFormat("yyyy_mm_dd_HH_mm_ss");
 
 	JComponent bts[];
 	byte[] bs;
@@ -50,6 +62,7 @@ public class USBSwing extends JFrame {
 	// JTextArea mJTextAreaForLink;
 	JButton button;
 	JPanel pMain;
+	int screenWidth, screenHeight;
 
 	public void showLog(String info) {
 		if (mLog != null)
@@ -63,7 +76,12 @@ public class USBSwing extends JFrame {
 
 	public USBSwing() throws HeadlessException {
 		super();
-		this.setSize(800, 600);
+
+		Toolkit kit = Toolkit.getDefaultToolkit(); // 定义工具包
+		Dimension screenSize = kit.getScreenSize(); // 获取屏幕的尺寸
+		screenWidth = screenSize.width; // 获取屏幕的宽
+		screenHeight = screenSize.height; // 获取屏幕的高
+		this.setSize(screenWidth / 2, screenHeight / 2);
 		this.setTitle("USB");
 		initView();
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -267,34 +285,25 @@ public class USBSwing extends JFrame {
 		case 2:
 			boolean is = isShow;
 			isShow = false;
-
-			int windowWidth = this.getWidth(); // 获得窗口宽
-			int windowHeight = this.getHeight(); // 获得窗口高
-			Toolkit kit = Toolkit.getDefaultToolkit(); // 定义工具包
-			Dimension screenSize = kit.getScreenSize(); // 获取屏幕的尺寸
-			int screenWidth = screenSize.width; // 获取屏幕的宽
-			int screenHeight = screenSize.height; // 获取屏幕的高
-			
-			System.out.println(windowWidth +"  "+windowHeight+" "+screenWidth+" "+screenHeight);
-			
-			// this.setLocation(screenWidth/2-windowWidth/2,
-			// screenHeight/2-windowHeight/2);//设置窗口居中显示
-
-			
-			double x = pMain.getWidth();
-			double y = pMain.getHeight();
-			Log.Log(x + "  " + y);
-
-			// 截取屏幕
+			Point p = pMain.getLocationOnScreen();
+			Rectangle m = pMain.getBounds();
 			try {
 				Robot robot = new Robot();
+				BufferedImage image = robot.createScreenCapture(new Rectangle(
+						(int) p.getX(), (int) p.getY(), (int) (m.getWidth()),
+						(int) (m.getHeight())));
+				String name=saveImage(image);
+				if(!StringUtil.isEmpty(name)){
+				String names=name.split("/.")[0]+".txt";
+				FileUtil.save(names,bs);
+				}
 			} catch (AWTException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			// BufferedImage
-			// image = robot.createScreenCapture(new Rectangle(0, 0, d.width,
-			// d.height));
 
 			if (is) {
 				isShow = true;
@@ -345,6 +354,57 @@ public class USBSwing extends JFrame {
 				}
 			}
 		}).start();
+	}
+
+	// 保存图像到文件
+	public String saveImage(BufferedImage image) throws IOException {
+		JFileChooser jfc = new JFileChooser();
+		jfc.setDialogTitle("保存");
+		// 文件过滤器，用户过滤可选择文件
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("JPG",
+				"jpg");
+		jfc.setFileFilter(filter);
+
+		// 初始化一个默认文件（此文件会生成到桌面上）
+		String fileName = sdf.format(new Date());
+
+		String dir = ProProperty.getKeyValue(Constant.fileDir);
+		File filePath = null;
+		if (!StringUtil.isEmpty(dir)) {
+			File filePath1 = new File(dir);
+			if (filePath1.exists() && filePath1.isDirectory()) {
+				filePath = filePath1;
+			}
+		}
+		if (filePath == null)
+			filePath = FileSystemView.getFileSystemView().getHomeDirectory();
+		File defaultFile = new File(filePath + File.separator + fileName
+				+ ".jpg");
+		jfc.setSelectedFile(defaultFile);
+
+		int flag = jfc.showSaveDialog(this);
+		if (flag == JFileChooser.APPROVE_OPTION) {
+			File file = jfc.getSelectedFile();
+			if (file.getParentFile() != defaultFile.getParentFile()) {
+				ProProperty.putKeyValue(Constant.fileDir, file.getParentFile()
+						.getAbsolutePath());
+			}
+
+			String path = file.getPath();
+			// 检查文件后缀，放置用户忘记输入后缀或者输入不正确的后缀
+			if (!(path.endsWith(".jpg") || path.endsWith(".JPG"))) {
+				path += ".jpg";
+			}
+			// 写入文件
+			ImageIO.write(image, "jpg", new File(path));
+			return path;
+		}
+		
+		return null;
+	
+
+		// jfc.
+
 	}
 
 }
