@@ -1,12 +1,16 @@
 package com.suyi.usb.swing;
 
+import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.HeadlessException;
 import java.awt.Label;
+import java.awt.Robot;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -43,8 +47,9 @@ public class USBSwing extends JFrame {
 	JButton mJButtons[] = new JButton[buttonStrings.length];
 	boolean isShow = true;
 	JTextArea mLog;
-//	JTextArea mJTextAreaForLink;
-	JButton button ;
+	// JTextArea mJTextAreaForLink;
+	JButton button;
+	JPanel pMain;
 
 	public void showLog(String info) {
 		if (mLog != null)
@@ -90,8 +95,8 @@ public class USBSwing extends JFrame {
 	}
 
 	private Component getMainPanel() {
-		JPanel p = new JPanel(new GridLayout(16, 16, 2, 2));
-		p.setBackground(bgColor);
+		pMain = new JPanel(new GridLayout(16, 16, 2, 2));
+		pMain.setBackground(bgColor);
 
 		bts = new JComponent[pinontSize]; // 创建按钮数组
 		for (int i = 1; i <= pinontSize; i++) {
@@ -104,9 +109,9 @@ public class USBSwing extends JFrame {
 				mJTextArea.setFont(font);
 			}
 			bts[i - 1] = mJTextArea;
-			p.add(mJTextArea);
+			pMain.add(mJTextArea);
 		}
-		return p;
+		return pMain;
 	}
 
 	private JPanel getTopPanel() {
@@ -133,11 +138,11 @@ public class USBSwing extends JFrame {
 		mJTextArea.getDocument().addDocumentListener(new DocumentListener() {
 			private void keepE(DocumentEvent e) {
 				try {
-					
+
 					String info = mJTextArea.getText();
-//							/e.getDocument().getText(e.getOffset(),
-//							e.getLength());
-//					Log.Log(info);
+					// /e.getDocument().getText(e.getOffset(),
+					// e.getLength());
+					// Log.Log(info);
 					if (!StringUtil.isEmpty(info)) {
 						ProProperty.putKeyValue(Constant.topTitle, info);
 					} else {
@@ -160,19 +165,17 @@ public class USBSwing extends JFrame {
 			}
 		});
 
-//		mJTextAreaForLink = new JTextArea(1, 1);
-//		// mJTextArea.setHorizontalAlignment(JTextField.CENTER);
-//		// mJTextArea2.setText("ss");
-//		mJTextAreaForLink.setBackground(Color.red);
-//		mJTextAreaForLink.setMargin(new Insets(10, 10, 10, 10));
-//		eastPanel.add(mJTextAreaForLink, BorderLayout.EAST);
-		
-		
+		// mJTextAreaForLink = new JTextArea(1, 1);
+		// // mJTextArea.setHorizontalAlignment(JTextField.CENTER);
+		// // mJTextArea2.setText("ss");
+		// mJTextAreaForLink.setBackground(Color.red);
+		// mJTextAreaForLink.setMargin(new Insets(10, 10, 10, 10));
+		// eastPanel.add(mJTextAreaForLink, BorderLayout.EAST);
+
 		button = new CircleButton("");
 		button.setBackground(Color.orange);
 		eastPanel.add(button, BorderLayout.EAST);
 
-		
 		return eastPanel;
 	}
 
@@ -264,6 +267,34 @@ public class USBSwing extends JFrame {
 		case 2:
 			boolean is = isShow;
 			isShow = false;
+
+			int windowWidth = this.getWidth(); // 获得窗口宽
+			int windowHeight = this.getHeight(); // 获得窗口高
+			Toolkit kit = Toolkit.getDefaultToolkit(); // 定义工具包
+			Dimension screenSize = kit.getScreenSize(); // 获取屏幕的尺寸
+			int screenWidth = screenSize.width; // 获取屏幕的宽
+			int screenHeight = screenSize.height; // 获取屏幕的高
+			
+			System.out.println(windowWidth +"  "+windowHeight+" "+screenWidth+" "+screenHeight);
+			
+			// this.setLocation(screenWidth/2-windowWidth/2,
+			// screenHeight/2-windowHeight/2);//设置窗口居中显示
+
+			
+			double x = pMain.getWidth();
+			double y = pMain.getHeight();
+			Log.Log(x + "  " + y);
+
+			// 截取屏幕
+			try {
+				Robot robot = new Robot();
+			} catch (AWTException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// BufferedImage
+			// image = robot.createScreenCapture(new Rectangle(0, 0, d.width,
+			// d.height));
 
 			if (is) {
 				isShow = true;

@@ -31,6 +31,8 @@ import javax.swing.JWindow;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 
+import com.suyi.usb.util.Log;
+
 public class ScreenShotTest {
 	public static void main(String[] args) {
 
@@ -62,12 +64,12 @@ class ScreenShotWindow extends JWindow {
 		// 获取屏幕尺寸
 		Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setBounds(0, 0, d.width, d.height);
-
+		
 		// 截取屏幕
 		Robot robot = new Robot();
 		image = robot.createScreenCapture(new Rectangle(0, 0, d.width, d.height));
 
-		this.addMouseListener(new MouseAdapter() {
+		ScreenShotWindow.this.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent e) {
 				// 鼠标松开时记录结束点坐标，并隐藏操作窗口
@@ -93,7 +95,7 @@ class ScreenShotWindow extends JWindow {
 			}
 		});
 
-		this.addMouseMotionListener(new MouseMotionAdapter() {
+		ScreenShotWindow.this.addMouseMotionListener(new MouseMotionAdapter() {
 
 			@Override
 			public void mouseDragged(MouseEvent e) {
@@ -105,6 +107,7 @@ class ScreenShotWindow extends JWindow {
 				Image tempImage2 = createImage(
 						ScreenShotWindow.this.getWidth(),
 						ScreenShotWindow.this.getHeight());
+				
 				Graphics g = tempImage2.getGraphics();
 				g.drawImage(tempImage, 0, 0, null);
 				int x = Math.min(orgx, endx);
@@ -126,6 +129,7 @@ class ScreenShotWindow extends JWindow {
 
 	@Override
 	public void paint(Graphics g) {
+		Log.Log("ssssssssssss");
 		RescaleOp ro = new RescaleOp(0.8f, 0, null);
 		tempImage = ro.filter(image, null);
 		g.drawImage(tempImage, 0, 0, this);
