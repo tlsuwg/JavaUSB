@@ -28,6 +28,7 @@ public class CircleButton extends JButton {
 	}
 
 	// 画圆的按钮的背景和标签
+	@Override
 	protected void paintComponent(Graphics g) {
 
 		if (getModel().isArmed()) {
@@ -43,6 +44,7 @@ public class CircleButton extends JButton {
 	}
 
 	// 用简单的弧画按钮的边界。
+	@Override
 	protected void paintBorder(Graphics g) {
 		g.setColor(Color.white);
 		// drawOval方法画矩形的内切椭圆，但不填充。只画出一个边界
@@ -52,6 +54,7 @@ public class CircleButton extends JButton {
 	// shape对象用于保存按钮的形状，有助于侦听点击按钮事件
 	Shape shape;
 
+	@Override
 	public boolean contains(int x, int y) {
 
 		if ((shape == null) || (!shape.getBounds().equals(getBounds()))) {

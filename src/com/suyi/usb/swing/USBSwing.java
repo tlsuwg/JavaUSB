@@ -42,7 +42,8 @@ import com.suyi.usb.util.StringUtil;
 
 public class USBSwing extends JFrame {
 
-	static int pinontSize = 256;
+	static int pinontX=16,pinontY = 16;
+	static int pinontSize = pinontX*pinontY;
 	static boolean isShowLine = true;
 	static boolean isShowLeft = false;
 
@@ -54,7 +55,7 @@ public class USBSwing extends JFrame {
 	Color bgColor = Color.decode("#8FBC8F");
 	SimpleDateFormat sdf = new SimpleDateFormat("yyyy_mm_dd_HH_mm_ss");
 
-	JComponent bts[];
+	JComponent bts[][];
 	byte[] bs;
 	JButton mJButtons[] = new JButton[buttonStrings.length];
 	boolean isShow = true;
@@ -108,27 +109,36 @@ public class USBSwing extends JFrame {
 		this.bs = bs;
 		int i = 0;
 		for (byte b : bs) {
-			bts[i++].setBackground(colors[b]);
+			bts[i++/pinontX][i%pinontY].setBackground(colors[b]);
 		}
 	}
 
 	private Component getMainPanel() {
-		pMain = new JPanel(new GridLayout(16, 16, 2, 2));
+		pMain = new JPanel(new GridLayout(pinontX, pinontY, 2, 2));
 		pMain.setBackground(bgColor);
 
-		bts = new JComponent[pinontSize]; // 创建按钮数组
-		for (int i = 1; i <= pinontSize; i++) {
+		bts = new JComponent[pinontX][pinontY]; // 创建按钮数组
+		for (int Y = 0; Y <pinontY; Y++) {
+			for (int X = 0; X < pinontX; X++) {
 			JTextArea mJTextArea = new JTextArea();
 			// mJTextArea.setHorizontalAlignment(JTextField.CENTER);
 			if (isShowLine) {
-				mJTextArea.setText(pinontSize - i + 1 + "");
+				mJTextArea.setText((X+1)+" "+(Y+1));
 				mJTextArea.setForeground(Color.blue);
 				Font font = new Font("宋体", Font.PLAIN, 10);
 				mJTextArea.setFont(font);
 			}
-			bts[i - 1] = mJTextArea;
-			pMain.add(mJTextArea);
+			bts[X][Y] = mJTextArea;
+			}
 		}
+		
+		for (int Y = pinontY-1; Y >=0; Y--) {
+			for (int X = 0; X < pinontX; X++) {
+				pMain.add(bts[X][Y]);//添加早在上面
+			}
+		}
+		
+		
 		return pMain;
 	}
 
@@ -191,7 +201,7 @@ public class USBSwing extends JFrame {
 		// eastPanel.add(mJTextAreaForLink, BorderLayout.EAST);
 
 		button = new CircleButton("");
-		button.setBackground(Color.orange);
+		button.setBackground(Color.red);
 		eastPanel.add(button, BorderLayout.EAST);
 
 		return eastPanel;

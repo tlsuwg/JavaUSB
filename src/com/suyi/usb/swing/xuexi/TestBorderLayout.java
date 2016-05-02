@@ -1,9 +1,7 @@
 package com.suyi.usb.swing.xuexi;
 
 import java.awt.*;
-import java.awt.event.*;
 import javax.swing.*;
-import javax.swing.event.*;
 /**
  * BorderLayout是某些容器组件的默认布局管理器，它将容器分为NORTH, SOUTH,CENTER，WEST，EAST五个区域，每个区域最多只能有一个组件，所以它也只适用于容器内组件较少（不大于5个）的布局管理。使用方式：
 Container.add（component, BorderLayout.SOUTH）;

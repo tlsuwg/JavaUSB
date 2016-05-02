@@ -18,6 +18,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.table.DefaultTableModel;
 
 public class SwingTest1 {
@@ -35,7 +36,7 @@ public class SwingTest1 {
 		// 创建包含表格的滚动窗格
 		JScrollPane scrollPane = new JScrollPane(table);
 		scrollPane
-				.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+				.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		// 定义 topPanel 的布局为 BoxLayout,BoxLayout 为垂直排列
 		topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
 		// 先加入一个不可见的 Strut,从而使 topPanel 对顶部留出一定的空间
@@ -71,7 +72,7 @@ public class SwingTest1 {
 		JScrollPane sourceListScroller = new JScrollPane(sourceList);
 		sourceListScroller.setPreferredSize(new Dimension(120, 80));
 		sourceListScroller
-				.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+				.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		sourceListScroller.setAlignmentY(Component.TOP_ALIGNMENT);
 		// 创建最左边的 Panel
 		JPanel sourceListPanel = new JPanel();
@@ -119,7 +120,7 @@ public class SwingTest1 {
 		JScrollPane targetListScroller = new JScrollPane(targetList);
 		targetListScroller.setPreferredSize(new Dimension(120, 80));
 		targetListScroller
-				.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+				.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		targetListScroller.setAlignmentY(Component.TOP_ALIGNMENT);
 		// 创建最右边的 Panel
 		JPanel targetListPanel = new JPanel();

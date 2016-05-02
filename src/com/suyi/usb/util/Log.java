@@ -1,7 +1,5 @@
 package com.suyi.usb.util;
 
-import java.io.FileNotFoundException;
-
 public class Log {
 	
 	public static void Log(String info){

@@ -23,7 +23,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JToolBar;
