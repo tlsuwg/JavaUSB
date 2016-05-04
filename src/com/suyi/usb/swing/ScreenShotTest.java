@@ -30,7 +30,7 @@ import javax.swing.JWindow;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 
-import com.suyi.usb.util.Log;
+import com.suyi.usb.util.SuLog;
 
 public class ScreenShotTest {
 	public static void main(String[] args) {
@@ -128,7 +128,7 @@ class ScreenShotWindow extends JWindow {
 
 	@Override
 	public void paint(Graphics g) {
-		Log.Log("ssssssssssss");
+		SuLog.Log("ssssssssssss");
 		RescaleOp ro = new RescaleOp(0.8f, 0, null);
 		tempImage = ro.filter(image, null);
 		g.drawImage(tempImage, 0, 0, this);

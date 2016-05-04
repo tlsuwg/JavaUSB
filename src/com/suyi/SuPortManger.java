@@ -7,6 +7,7 @@ package com.suyi;
 import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
 import gnu.io.PortInUseException;
+import gnu.io.SerialPort;
 
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -22,7 +23,7 @@ import com.hitangjun.desk.Log;
  */
 public class SuPortManger  {
 
-	static void listPorts() {//只是获取
+	public static void listPorts() {//只是获取
 		Enumeration portEnum = CommPortIdentifier.getPortIdentifiers();
 		while (portEnum.hasMoreElements()) {
 			CommPortIdentifier portIdentifier = (CommPortIdentifier) portEnum
@@ -31,8 +32,25 @@ public class SuPortManger  {
 					+ getPortTypeName(portIdentifier.getPortType()));
 		}
 	}
+	
+	  //转换预设的奇偶校验位的值
+	public static int getParityValue(String parity){
+    	 if("NONE".equals(parity)){
+      	   return SerialPort.PARITY_NONE;
+         }else if("ODD".equals(parity)){
+        	 return SerialPort.PARITY_ODD;
+         }else if("EVEN".equals(parity)){
+        	 return SerialPort.PARITY_EVEN;
+         }else if("MARK".equals(parity)){
+        	 return SerialPort.PARITY_MARK;
+         }else if("SPACE".equals(parity)){
+        	 return SerialPort.PARITY_SPACE;
+         }else{
+        	 return SerialPort.PARITY_NONE;
+         }
+    }
 
-	static String getPortTypeName(int portType) {
+	public static String getPortTypeName(int portType) {
 		switch (portType) {
 		case CommPortIdentifier.PORT_I2C:
 			return "I2C";
@@ -84,4 +102,6 @@ public class SuPortManger  {
 
 		getAvailableSerialPorts();
 	}
+	
+	
 }

@@ -8,6 +8,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.HeadlessException;
+import java.awt.Insets;
 import java.awt.Label;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -15,11 +16,16 @@ import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Observable;
+import java.util.Observer;
+import java.util.Stack;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
@@ -35,45 +41,42 @@ import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 
+import com.hitangjun.desk.SerialPortException;
+import com.suyi.SuSerialPortLinker;
 import com.suyi.usb.util.Constant;
-import com.suyi.usb.util.Log;
+import com.suyi.usb.util.FileUtil;
 import com.suyi.usb.util.ProProperty;
 import com.suyi.usb.util.StringUtil;
+import com.suyi.usb.util.SuLog;
 
 public class USBSwing extends JFrame {
 
-	static int pinontX=16,pinontY = 16;
-	static int pinontSize = pinontX*pinontY;
-	static boolean isShowLine = true;
-	static boolean isShowLeft = false;
+	static int pinontX = 16, pinontY = 16;
+	static int pinontSize = pinontX * pinontY;
+	static boolean isShowLine = true;// 展示数字标签
+	static boolean isShowLeft = true;// 展示左侧
+	static boolean isAutoShow = true;// 测试自动刷新
+	static boolean isRecodeXY = false;// 自动记录位置
+	static int logsSize = 5;
 
 	String[] buttonStrings = new String[] { "开始采集", "停止采集", "图像输出", "清除", "退出" };
-
 	Color colors[] = new Color[] { Color.decode("#FFFFFF"),
 			Color.decode("#C2C2C2"), Color.decode("#636363"),
 			Color.decode("#000000"), };
 	Color bgColor = Color.decode("#8FBC8F");
 	SimpleDateFormat sdf = new SimpleDateFormat("yyyy_mm_dd_HH_mm_ss");
-
+	SimpleDateFormat sdfNo = new SimpleDateFormat("HH_mm_ss_SSS");
 	JComponent bts[][];
-	byte[] bs;
+	byte[] showBs;
 	JButton mJButtons[] = new JButton[buttonStrings.length];
-	boolean isShow = true;
+	boolean isShow = true;// 立即
 	JTextArea mLog;
 	// JTextArea mJTextAreaForLink;
-	JButton button;
+	JButton linkStatusButton;
 	JPanel pMain;
 	int screenWidth, screenHeight;
 
-	public void showLog(String info) {
-		if (mLog != null)
-			mLog.setText(info);
-		Log.Log(info);
-	}
-
-	public byte[] getBytes() {
-		return bs;
-	}
+	SuSerialPortLinker mSuSerialPortLinker;
 
 	public USBSwing() throws HeadlessException {
 		super();
@@ -82,34 +85,245 @@ public class USBSwing extends JFrame {
 		Dimension screenSize = kit.getScreenSize(); // 获取屏幕的尺寸
 		screenWidth = screenSize.width; // 获取屏幕的宽
 		screenHeight = screenSize.height; // 获取屏幕的高
-		this.setSize(screenWidth / 2, screenHeight / 2);
 		this.setTitle("USB");
+		setSize();
 		initView();
+		// this.addWindowStateListener(new WindowStateListener () {
+		//
+		// public void windowStateChanged(WindowEvent state) {
+		//
+		// if(state.getNewState() == 1 || state.getNewState() == 7) {
+		// System.out.println("窗口最小化");
+		// }else if(state.getNewState() == 0) {
+		// System.out.println("窗口恢复到初始状态");
+		// }else if(state.getNewState() == 6) {
+		// System.out.println("窗口最大化");
+		// }else{
+		// System.out.println(state.toString());
+		// }
+		// }
+		// });
+		if (isRecodeXY)
+			this.addComponentListener(new ComponentListener() {
+				@Override
+				public void componentShown(ComponentEvent e) {
+					// TODO Auto-generated method stub
+					// SuLog.Log("componentShown"+e);
+				}
+
+				@Override
+				public void componentResized(ComponentEvent e) {
+					// TODO Auto-generated method stub
+					SuLog.Log("componentResized " + e);
+					SuLog.Log(e.getComponent().getWidth() + " "
+							+ e.getComponent().getHeight());
+					try {
+						ProProperty.putKeyValue(Constant.suWi,
+								String.valueOf(e.getComponent().getWidth()));
+						ProProperty.putKeyValue(Constant.suHi,
+								String.valueOf(e.getComponent().getHeight()));
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+
+				@Override
+				public void componentMoved(ComponentEvent e) {
+					// TODO Auto-generated method stub
+					SuLog.Log("componentMoved " + e);
+					SuLog.Log(e.getComponent().getX() + " "
+							+ e.getComponent().getY());
+					try {
+						ProProperty.putKeyValue(Constant.suX,
+								String.valueOf(e.getComponent().getX()));
+						ProProperty.putKeyValue(Constant.suY,
+								String.valueOf(e.getComponent().getY()));
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+
+				@Override
+				public void componentHidden(ComponentEvent e) {
+					// TODO Auto-generated method stub
+					// SuLog.Log("componentHidden"+e);
+				}
+			});
+
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setVisible(true);
-		setLocationRelativeTo(null); // 让窗体居中显示
+		setLocation();
+
+		doActione(0);
+
+		if (isAutoShow) {
+			new Thread(new Runnable() {
+				public void run() {
+					byte[] showBs = new byte[pinontSize];
+					while (true) {
+						for (int i = 0; i < pinontSize; i++) {
+							showBs[i] = (byte) (Math.random() * 4);
+						}
+						setLink(showBs[0] > 2);
+						setColors(showBs, false);
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				}
+			}).start();
+		} else {
+
+			// new Thread(new Runnable() {
+			// @Override
+			// public void run() {
+			// // TODO Auto-generated method stub
+			// while (true) {
+			// checkLink();
+			// try {
+			// Thread.sleep(5000);
+			// } catch (InterruptedException e) {
+			// // TODO Auto-generated catch block
+			// e.printStackTrace();
+			// }
+			//
+			// }
+			// }
+			// }).start();
+		}
+
+	}
+
+	private void setLocation() {
+		// TODO Auto-generated method stub
+		int w = 0, h = 0;
+		if (isRecodeXY) {
+			String wi = ProProperty.getKeyValue(Constant.suX);
+			String hi = ProProperty.getKeyValue(Constant.suY);
+			if (!StringUtil.isEmpty(wi) && !StringUtil.isEmpty(hi)) {
+				try {
+					w = Integer.parseInt(wi);
+					h = Integer.parseInt(hi);
+				} catch (Exception e) {
+				}
+			}
+		}
+		if (w <= 0 || h <= 0) {
+			setLocationRelativeTo(null); // 让窗体居中显示
+		} else {
+			setLocation(w, h);
+		}
+	}
+
+	private void setSize() {
+		// TODO Auto-generated method stub
+		int w = 0, h = 0;
+		if (isRecodeXY) {
+			String wi = ProProperty.getKeyValue(Constant.suWi);
+			String hi = ProProperty.getKeyValue(Constant.suHi);
+			if (!StringUtil.isEmpty(wi) && !StringUtil.isEmpty(hi)) {
+				try {
+					w = Integer.parseInt(wi);
+					h = Integer.parseInt(hi);
+				} catch (Exception e) {
+				}
+			}
+		}
+		if (w == 0) {
+			w = screenWidth / 2;
+		}
+		if (h == 0) {
+			h = screenHeight / 2;
+		}
+		this.setSize(w, h);
+	}
+
+	private void checkLink() {
+		// TODO Auto-generated method stub
+		if (mSuSerialPortLinker == null) {
+			mSuSerialPortLinker = new SuSerialPortLinker();
+			mSuSerialPortLinker.addObserver(new Observer() {
+				@Override
+				public void update(Observable o, Object arg) {
+					// TODO Auto-generated method stub
+					if (arg != null) {
+						if (arg instanceof byte[]) {
+							setColors((byte[]) arg, false);
+						} else if (arg instanceof Boolean) {
+							setLink((Boolean) arg);
+						} else if (arg instanceof String) {
+							showLog((String) arg);
+						} else {
+						}
+					}
+				}
+			});
+		}
+		if (!mSuSerialPortLinker.isOpen() && !mSuSerialPortLinker.isOpening())
+			try {
+				mSuSerialPortLinker.startOpen();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				// e.printStackTrace();
+				showLog(e.getMessage());
+				setLink(false);
+			}
 	}
 
 	private void initView() {
-
 		this.add(getEastPanel(), BorderLayout.EAST);
 		this.add(getTopPanel(), BorderLayout.NORTH);
 		this.add(getMainPanel(), BorderLayout.CENTER);
-		doActione(0);
 	}
 
-	public void setColors(byte[] bs, boolean isMust) {
+	public void setLink(boolean is) {
+		if (is) {
+			linkStatusButton.setBackground(Color.green);
+			showLog("链接建立");
+			setButtonAble(0, 1, 1, 1, 1);
+		} else {
+			linkStatusButton.setBackground(Color.red);
+			showLog("链接中断");
+			setButtonAble(1, 0, 1, 1, 1);
+		}
+	}
+
+	Stack<String> logs = new Stack<String>();
+
+	public void showLog(String info) {
+		logs.add(info);
+		if (logs.size() > logsSize) {
+			logs.remove(0);
+		}
+		String ins = sdfNo.format(new Date()) + "\n"
+				+ StringUtil.getStrings(logs);
+		if (mLog != null)
+			mLog.setText(ins);
+		SuLog.Log(ins);
+	}
+
+	public byte[] getBytes() {
+		return showBs;
+	}
+
+	public void setColors(byte[] showBs, boolean isMust) {
 		if (!isMust && !isShow)
 			return;
-		if (bs.length != pinontSize) {
-			showLog("数据不足：" + pinontSize);
+		if (showBs.length != pinontSize) {
+			showLog("数据出错：" + pinontSize);
 			return;
 		}
 
-		this.bs = bs;
+		this.showBs = showBs;
+		showLog("获取到新数据");
 		int i = 0;
-		for (byte b : bs) {
-			bts[i++/pinontX][i%pinontY].setBackground(colors[b]);
+		for (byte b : showBs) {
+			bts[i++ / pinontX][i % pinontY].setBackground(colors[b]);
 		}
 	}
 
@@ -118,27 +332,26 @@ public class USBSwing extends JFrame {
 		pMain.setBackground(bgColor);
 
 		bts = new JComponent[pinontX][pinontY]; // 创建按钮数组
-		for (int Y = 0; Y <pinontY; Y++) {
+		for (int Y = 0; Y < pinontY; Y++) {
 			for (int X = 0; X < pinontX; X++) {
-			JTextArea mJTextArea = new JTextArea();
-			// mJTextArea.setHorizontalAlignment(JTextField.CENTER);
-			if (isShowLine) {
-				mJTextArea.setText((X+1)+" "+(Y+1));
-				mJTextArea.setForeground(Color.blue);
-				Font font = new Font("宋体", Font.PLAIN, 10);
-				mJTextArea.setFont(font);
-			}
-			bts[X][Y] = mJTextArea;
+				JTextArea mJTextArea = new JTextArea();
+				// mJTextArea.setHorizontalAlignment(JTextField.CENTER);
+				if (isShowLine) {
+					mJTextArea.setText((X + 1) + " " + (Y + 1));
+					mJTextArea.setForeground(Color.blue);
+					Font font = new Font("宋体", Font.PLAIN, 10);
+					mJTextArea.setFont(font);
+				}
+				bts[X][Y] = mJTextArea;
 			}
 		}
-		
-		for (int Y = pinontY-1; Y >=0; Y--) {
+
+		for (int Y = pinontY - 1; Y >= 0; Y--) {
 			for (int X = 0; X < pinontX; X++) {
-				pMain.add(bts[X][Y]);//添加早在上面
+				pMain.add(bts[X][Y]);// 添加早在上面
 			}
 		}
-		
-		
+
 		return pMain;
 	}
 
@@ -200,19 +413,13 @@ public class USBSwing extends JFrame {
 		// mJTextAreaForLink.setMargin(new Insets(10, 10, 10, 10));
 		// eastPanel.add(mJTextAreaForLink, BorderLayout.EAST);
 
-		button = new CircleButton("");
-		button.setBackground(Color.red);
-		eastPanel.add(button, BorderLayout.EAST);
+		linkStatusButton = new CircleButton("");
+		linkStatusButton.setPreferredSize(new Dimension(50, 50));
+		// linkStatusButton.setMargin(new Insets(100,100,100,100));
+		linkStatusButton.setBackground(Color.red);
+		eastPanel.add(linkStatusButton, BorderLayout.EAST);
 
 		return eastPanel;
-	}
-
-	public void setLink(boolean is) {
-		if (is) {
-			button.setBackground(Color.green);
-		} else {
-			button.setBackground(Color.red);
-		}
 	}
 
 	private JPanel getEastPanel() {
@@ -282,15 +489,32 @@ public class USBSwing extends JFrame {
 	}
 
 	private void doActione(int index) {
+		showLog(index < buttonStrings.length ? buttonStrings[index] : "未知操作");
 
 		switch (index) {
 		case 0:
 			isShow = true;
 			setButtonAble(0, 1, 1, 1, 1);
+			if (isAutoShow) {
+
+			} else {
+				checkLink();
+			}
 			break;
 		case 1:
 			isShow = false;
 			setButtonAble(1, 0, 1, 1, 1);
+
+			if (!isAutoShow && mSuSerialPortLinker != null
+					&& mSuSerialPortLinker.isOpen()) {
+				try {
+					mSuSerialPortLinker.close();
+				} catch (SerialPortException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+
 			break;
 		case 2:
 			boolean is = isShow;
@@ -302,16 +526,14 @@ public class USBSwing extends JFrame {
 				BufferedImage image = robot.createScreenCapture(new Rectangle(
 						(int) p.getX(), (int) p.getY(), (int) (m.getWidth()),
 						(int) (m.getHeight())));
-				String name=saveImage(image);
-				if(!StringUtil.isEmpty(name)){
-				String names=name.split("/.")[0]+".txt";
-				FileUtil.save(names,bs);
+				String name = saveImage(image);
+				if (!StringUtil.isEmpty(name)) {
+					String names = name.split("/.")[0] + ".txt";
+					FileUtil.save(names, showBs, pinontX);
 				}
 			} catch (AWTException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
@@ -321,8 +543,11 @@ public class USBSwing extends JFrame {
 			break;
 		case 3:
 			// isShow=false;
-			byte[] bs = new byte[pinontSize];
-			setColors(bs, true);
+			byte[] showBs = new byte[pinontSize];
+			setColors(showBs, true);
+			logs.clear();
+			showLog(index < buttonStrings.length ? buttonStrings[index]
+					: "未知操作");
 			break;
 		case 4:
 			System.exit(1);
@@ -330,6 +555,7 @@ public class USBSwing extends JFrame {
 		default:
 			break;
 		}
+
 	}
 
 	public void setButtonAble(int i, int j, int k, int l, int m) {
@@ -338,32 +564,6 @@ public class USBSwing extends JFrame {
 		mJButtons[2].setEnabled(k == 1);
 		mJButtons[3].setEnabled(l == 1);
 		mJButtons[4].setEnabled(m == 1);
-	}
-
-	public static void main(String[] a) {
-		final USBSwing mUSBSwing = new USBSwing();
-
-		new Thread(new Runnable() {
-			public void run() {
-
-				byte[] bs = new byte[pinontSize];
-				while (true) {
-					try {
-						Thread.sleep(2000);
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-
-					for (int i = 0; i < pinontSize; i++) {
-						bs[i] = (byte) (Math.random() * 4);
-					}
-
-					mUSBSwing.setLink(bs[0] > 2);
-					mUSBSwing.setColors(bs, false);
-				}
-			}
-		}).start();
 	}
 
 	// 保存图像到文件
@@ -409,9 +609,8 @@ public class USBSwing extends JFrame {
 			ImageIO.write(image, "jpg", new File(path));
 			return path;
 		}
-		
+
 		return null;
-	
 
 		// jfc.
 

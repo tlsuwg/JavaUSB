@@ -85,7 +85,8 @@ public class SerialPortsWindLines extends javax.swing.JFrame {
         
         int parityInt = getParityValue(parity);
         String paramsMsg = "打开串口 "+port+","+rate+","+parity+","+dataBit+","+stopBit;
-        
+//        打开串口 COM1,9600,NONE,8,1
+        System.out.println(paramsMsg);
         params.put( SerialPortReader.PARAMS_PORT, port ); // 端口名称
         params.put( SerialPortReader.PARAMS_RATE, rate ); // 波特率
         params.put( SerialPortReader.PARAMS_DATABITS,dataBit  ); // 数据位

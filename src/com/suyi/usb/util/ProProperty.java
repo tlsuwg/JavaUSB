@@ -24,9 +24,9 @@ public class ProProperty {
 		try {
 			props.load(new FileInputStream(profilepath));
 		} catch (FileNotFoundException e) {
-			Log.LogE(e);
+			SuLog.LogE(e);
 		} catch (IOException e) {
-			Log.LogE(e);
+			SuLog.LogE(e);
 		}
 	}
 
@@ -54,7 +54,7 @@ public class ProProperty {
 			String strKey = (String) enum1.nextElement();
 			String strValue = props.getProperty(strKey);
 
-			Log.Log(strKey + "=" + strValue);
+			SuLog.Log(strKey + "=" + strValue);
 		}
 	}
 

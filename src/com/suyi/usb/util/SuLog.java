@@ -1,6 +1,6 @@
 package com.suyi.usb.util;
 
-public class Log {
+public class SuLog {
 	
 	public static void Log(String info){
 		if(Constant.isDev)
