@@ -42,6 +42,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 
 import com.hitangjun.desk.SerialPortException;
+import com.hitangjun.desk.SerialPortsWindLines;
 import com.suyi.SuSerialPortLinker;
 import com.suyi.usb.util.Constant;
 import com.suyi.usb.util.FileUtil;
@@ -59,7 +60,9 @@ public class USBSwing extends JFrame {
 	static boolean isRecodeXY = false;// 自动记录位置
 	static int logsSize = 5;
 
-	String[] buttonStrings = new String[] { "开始采集", "停止采集", "图像输出", "清除", "退出" };
+	String[] buttonStrings = new String[] { "开始采集", "停止采集", "图像输出", "清除", "退出"
+//			,"调试"
+			};
 	Color colors[] = new Color[] { Color.decode("#FFFFFF"),
 			Color.decode("#C2C2C2"), Color.decode("#636363"),
 			Color.decode("#000000"), };
@@ -155,9 +158,7 @@ public class USBSwing extends JFrame {
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setVisible(true);
 		setLocation();
-
 		doActione(0);
-
 		if (isAutoShow) {
 			new Thread(new Runnable() {
 				public void run() {
@@ -552,6 +553,13 @@ public class USBSwing extends JFrame {
 		case 4:
 			System.exit(1);
 			break;
+		case 5:
+			 java.awt.EventQueue.invokeLater(new Runnable() {
+		            public void run() {
+		                new SerialPortsWindLines(false).setVisible(true);
+		            }
+		        });
+			break;
 		default:
 			break;
 		}
@@ -599,7 +607,6 @@ public class USBSwing extends JFrame {
 				ProProperty.putKeyValue(Constant.fileDir, file.getParentFile()
 						.getAbsolutePath());
 			}
-
 			String path = file.getPath();
 			// 检查文件后缀，放置用户忘记输入后缀或者输入不正确的后缀
 			if (!(path.endsWith(".jpg") || path.endsWith(".JPG"))) {

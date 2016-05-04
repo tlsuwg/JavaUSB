@@ -16,6 +16,7 @@ import gnu.io.SerialPort;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -28,6 +29,8 @@ import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYSeries;
 
+import com.suyi.SuPortManger;
+
 
 /**
  * http://hitangjun.com
@@ -38,9 +41,12 @@ public class SerialPortsWindLines extends javax.swing.JFrame {
 	 DynamicChart dynamicChart = new DynamicChart();
 	 SerialPortReader sr =new SerialPortReader();
      
-    /** Creates new form SerialPortsWindLines */
-    public SerialPortsWindLines() {
+	 boolean isMain;
+    /** Creates new form SerialPortsWindLines 
+     * @param b */
+    public SerialPortsWindLines(boolean b) {
         //设置窗体外观为windows
+    	 isMain=b;
     	try{
             javax.swing.UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
         }catch(Exception e){
@@ -211,10 +217,11 @@ public class SerialPortsWindLines extends javax.swing.JFrame {
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new SerialPortsWindLines().setVisible(true);
+                new SerialPortsWindLines(true).setVisible(true);
             }
         });
     }
+    
     
     int lastIndex = 0;
   
@@ -359,7 +366,9 @@ public class SerialPortsWindLines extends javax.swing.JFrame {
         anthorToolBar = new javax.swing.JToolBar();
         authorLabel = new javax.swing.JLabel();
 
+        if(isMain){
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        }
         setTitle("串口曲线");
         setName("SerialPortsWindLinesFrame"); // NOI18N
         setResizable(false);
@@ -382,8 +391,17 @@ public class SerialPortsWindLines extends javax.swing.JFrame {
 
         stopBitLabel.setText("停止位");
         stopBitLabel.setName("stopBitLabel"); // NOI18N
+        
+        HashSet<String> set=   SuPortManger.getAllSerialPortNames();
+        set.add( "COM4");
+        set.add( "COM3");
+        set.add( "COM2");
+        set.add( "COM1");
+       
+      
+       
 
-        portComboBox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "COM1", "COM2", "COM3", "COM4" }));
+        portComboBox.setModel(new javax.swing.DefaultComboBoxModel(set.toArray()));
         portComboBox.setToolTipText("选择串口");
         portComboBox.setName("portComboBox"); // NOI18N
 

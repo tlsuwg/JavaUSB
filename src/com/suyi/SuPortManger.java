@@ -96,6 +96,27 @@ public class SuPortManger  {
 		}
 		return h;
 	}
+	
+	public static HashSet<String> getAllSerialPortNames() {//≤‚ ‘ƒ‹πª¡¨Ω”
+		HashSet<String> h = new HashSet<String>();
+		Enumeration thePorts = CommPortIdentifier.getPortIdentifiers();
+		while (thePorts.hasMoreElements()) {
+			CommPortIdentifier com = (CommPortIdentifier) thePorts
+					.nextElement();
+			switch (com.getPortType()) {
+			case CommPortIdentifier.PORT_SERIAL:
+				try {
+					h.add(com.getName());
+					System.out
+							.println("Port, " + com.getName() + ", test open ok ");
+				}  catch (Exception e) {
+					System.out.println("Failed to open port " + com.getName()
+							+ e);
+				}
+			}
+		}
+		return h;
+	}
 
 	public static void main(String args[]) {
 		listPorts();
