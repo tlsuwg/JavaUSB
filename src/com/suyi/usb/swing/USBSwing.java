@@ -46,6 +46,7 @@ import com.hitangjun.desk.SerialPortsWindLines;
 import com.suyi.SuSerialPortLinker;
 import com.suyi.usb.util.Constant;
 import com.suyi.usb.util.FileUtil;
+import com.suyi.usb.util.IntByte;
 import com.suyi.usb.util.ProProperty;
 import com.suyi.usb.util.StringUtil;
 import com.suyi.usb.util.SuLog;
@@ -63,8 +64,6 @@ public class USBSwing extends JFrame {
 	String[] buttonStrings = new String[] { "开始采集", "停止采集", "图像输出", "清除", "退出"
 	// ,"调试"
 	};
-	
-
 
 	Color colors[] = new Color[] { Color.decode("#FFFFFF"),
 			Color.decode("#C2C2C2"), Color.decode("#636363"),
@@ -80,13 +79,12 @@ public class USBSwing extends JFrame {
 	// JTextArea mJTextAreaForLink;
 	JButton linkStatusButton;
 	JPanel pMain;
-	
 
 	int screenWidth, screenHeight;
 
 	SuSerialPortLinker mSuSerialPortLinker;
-	
-//	===========================设置
+
+	// ===========================设置
 	String settingName = "设置";
 	String[] settingStrings = new String[] { "min", "lev0", "lev1", "lev2",
 			"lev3", "max" };
@@ -95,7 +93,8 @@ public class USBSwing extends JFrame {
 	int[] settingLeave = new int[] { 0, 1000, 2000, 4000, 5000, 6000 };
 	JTextArea[] mJTextAreaForLevs = new JTextArea[settingStrings.length];
 	JButton buttonSetting;
-//=============================设置
+
+	// =============================设置
 	public USBSwing() throws HeadlessException {
 		super();
 
@@ -132,9 +131,9 @@ public class USBSwing extends JFrame {
 				@Override
 				public void componentResized(ComponentEvent e) {
 					// TODO Auto-generated method stub
-//					SuLog.Log("componentResized " + e);
-//					SuLog.Log(e.getComponent().getWidth() + " "
-//							+ e.getComponent().getHeight());
+					// SuLog.Log("componentResized " + e);
+					// SuLog.Log(e.getComponent().getWidth() + " "
+					// + e.getComponent().getHeight());
 					try {
 						ProProperty.putKeyValue(Constant.suWi,
 								String.valueOf(e.getComponent().getWidth()));
@@ -149,9 +148,9 @@ public class USBSwing extends JFrame {
 				@Override
 				public void componentMoved(ComponentEvent e) {
 					// TODO Auto-generated method stub
-//					SuLog.Log("componentMoved " + e);
-//					SuLog.Log(e.getComponent().getX() + " "
-//							+ e.getComponent().getY());
+					// SuLog.Log("componentMoved " + e);
+					// SuLog.Log(e.getComponent().getX() + " "
+					// + e.getComponent().getY());
 					try {
 						ProProperty.putKeyValue(Constant.suX,
 								String.valueOf(e.getComponent().getX()));
@@ -267,7 +266,7 @@ public class USBSwing extends JFrame {
 				@Override
 				public void update(Observable o, Object arg) {
 					// TODO Auto-generated method stub
-//					SuLog.Log(arg.toString());
+					// SuLog.Log(arg.toString());
 					if (arg != null) {
 						if (arg instanceof byte[]) {
 							setColors((byte[]) arg, false);
@@ -303,6 +302,7 @@ public class USBSwing extends JFrame {
 			linkStatusButton.setBackground(Color.green);
 			showLog("链接建立");
 			setButtonAble(0, 1, 1, 1, 1);
+			sendSetting();
 		} else {
 			linkStatusButton.setBackground(Color.red);
 			showLog("链接中断");
@@ -310,7 +310,7 @@ public class USBSwing extends JFrame {
 		}
 	}
 
-	Stack<String> logs = new Stack<String>();
+	private Stack<String> logs = new Stack<String>();
 
 	public void showLog(String info) {
 		logs.add(info);
@@ -445,7 +445,7 @@ public class USBSwing extends JFrame {
 		eastPanel.setBackground(bgColor);
 		eastPanel.setLayout(new BoxLayout(eastPanel, BoxLayout.Y_AXIS));
 
-		eastPanel.add(Box.createVerticalStrut(5));  
+		eastPanel.add(Box.createVerticalStrut(5));
 		{// 设置
 			JPanel settingPanel = new JPanel();
 			settingPanel
@@ -473,9 +473,8 @@ public class USBSwing extends JFrame {
 
 			eastPanel.add(settingPanel);
 		}
-		eastPanel.add(Box.createVerticalStrut(5));  
-	
-		
+		eastPanel.add(Box.createVerticalStrut(5));
+
 		if (isShowLeft) {// 开发日志
 			JPanel topPanel = new JPanel();
 			topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
@@ -496,7 +495,7 @@ public class USBSwing extends JFrame {
 			topPanel.add(mLabelC);
 
 			eastPanel.add(topPanel);
-			eastPanel.add(Box.createVerticalStrut(5));  
+			eastPanel.add(Box.createVerticalStrut(5));
 		}
 
 		{// mainbutton
@@ -517,7 +516,7 @@ public class USBSwing extends JFrame {
 			// eastPanel.add(busPanel, BorderLayout.CENTER);
 			eastPanel.add(busPanel);
 		}
-		eastPanel.add(Box.createVerticalStrut(5));  
+		eastPanel.add(Box.createVerticalStrut(5));
 		return eastPanel;
 	}
 
@@ -546,7 +545,7 @@ public class USBSwing extends JFrame {
 		mJTextAreaForLevs[i] = mLog;
 		if (isChange) {
 			mLog.setBackground(Color.white);
-			
+
 		} else {
 			mLog.setBackground(Color.gray);
 		}
@@ -584,7 +583,7 @@ public class USBSwing extends JFrame {
 	}
 
 	private void doActione(int index) {
-	
+
 		switch (index) {
 		case 0:
 			showLog(index < buttonStrings.length ? buttonStrings[index] : "");
@@ -661,8 +660,10 @@ public class USBSwing extends JFrame {
 				String info = mJTextAreaForLevs[i].getText();
 				try {
 					int pa = Integer.parseInt(info);
-					if(pa<settingLeave[0]||pa>settingLeave[settingLeave.length-1]){
-						showSettingErr("设置越界:"+settingLeave[0]+"to"+settingLeave[settingLeave.length-1]);
+					if (pa < settingLeave[0]
+							|| pa > settingLeave[settingLeave.length - 1]) {
+						showSettingErr("设置越界:" + settingLeave[0] + "to"
+								+ settingLeave[settingLeave.length - 1]);
 						setSettingView();
 						return;
 					}
@@ -674,39 +675,55 @@ public class USBSwing extends JFrame {
 					return;
 				}
 			}
-			
-			int old=-1;
-			for(int i:gets){
-				if(i<=old){
-					showSettingErr("设置异常"+i+"必须>"+old);
+
+			int old = -1;
+			for (int i : gets) {
+				if (i <= old) {
+					showSettingErr("设置异常" + i + "必须>" + old);
 					setSettingView();
 					return;
 				}
-				old=i;
+				old = i;
 			}
-			
 
-			for (int i = 1; i < mJTextAreaForLevs.length-1; i++) {
+			for (int i = 1; i < mJTextAreaForLevs.length - 1; i++) {
 				if (gets[i] != settingLeave[i]) {
 					isChangeSetting = true;
-					showLog(settingStrings[i]+":"+settingLeave[i]+"-->"+gets[i]);
+					showLog(settingStrings[i] + ":" + settingLeave[i] + "-->"
+							+ gets[i]);
 					settingLeave[i] = gets[i];
 				}
 			}
 
 			if (isChangeSetting) {
 				saveSettingInfo();
-			}else{
+				sendSetting();
+			} else {
 				showLog("未变化");
 			}
-			
 			buttonSetting.setBackground(null);
-
 			break;
 		default:
 			break;
 		}
 
+	}
+
+	private void sendSetting() {
+		// TODO Auto-generated method stub
+		if (mSuSerialPortLinker != null) {
+			try {
+				byte[] bs = new byte[(settingLeave.length - 2) * 4];
+				for (int i = 1; i < settingLeave.length - 2; i++) {
+					byte[] ints = IntByte.int2byte(settingLeave[i]);
+					System.arraycopy(ints, 0, bs, (i - 1) * 4, ints.length);
+				}
+				mSuSerialPortLinker.send(bs);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 
 	private void saveSettingInfo() {
@@ -725,7 +742,8 @@ public class USBSwing extends JFrame {
 	void getSettingInfo() {
 		for (int i = 1; i <= 4; i++) {
 			try {
-				String info = ProProperty.getKeyValue(Constant.settingLev + ""+i);
+				String info = ProProperty.getKeyValue(Constant.settingLev + ""
+						+ i);
 				if (!StringUtil.isEmpty(info)) {
 					int in = Integer.parseInt(info);
 					settingLeave[i] = in;

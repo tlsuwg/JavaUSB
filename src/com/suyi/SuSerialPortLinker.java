@@ -14,6 +14,7 @@ import gnu.io.UnsupportedCommOperationException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,6 +37,7 @@ public class SuSerialPortLinker extends Observable {
 	int numBytes; // buffer中的实际数据字节数
 	private static byte[] readBuffer = new byte[4096]; // 4k的buffer空间,缓存串口读入的数据
 	InputStream inputStream;
+	OutputStream outputStream;
 	SerialPort serialPort;
 	// 端口是否打开了
 	volatile boolean isOpen = false;
@@ -68,7 +70,6 @@ public class SuSerialPortLinker extends Observable {
 	 */
 	public SuSerialPortLinker() {
 		super();
-
 	}
 
 	public boolean isOpening() {
@@ -135,11 +136,11 @@ public class SuSerialPortLinker extends Observable {
 			portId = CommPortIdentifier.getPortIdentifier(port);
 			serialPort = (SerialPort) portId.open("SerialPortLinker", timeout);
 			inputStream = serialPort.getInputStream();
+			outputStream=serialPort.getOutputStream();
 			serialPort.addEventListener(new SerialPortEventListener() {
 				@Override
 				public void serialEvent(SerialPortEvent ev) {
 					// TODO Auto-generated method stub
-					
 					getSerialEvent(ev);
 				}
 			});
@@ -170,9 +171,13 @@ public class SuSerialPortLinker extends Observable {
 			try {
 				serialPort.notifyOnDataAvailable(false);
 				serialPort.removeEventListener();
+				outputStream.close();
+				outputStream=null;
 				inputStream.close();
+				inputStream=null;
 				serialPort.close();
 				isOpen = false;
+				
 			} catch (IOException ex) {
 				throw new SerialPortException("关闭串口失败");
 			}
@@ -232,6 +237,16 @@ public class SuSerialPortLinker extends Observable {
 		byte[] temp = new byte[length];
 		System.arraycopy(message, 0, temp, 0, length);
 		notifyObservers(temp);
+	}
+
+	public void send(byte[] bs) throws IOException {
+		if(bs==null)return;
+		if(!isOpen()){
+			throw new IOException("已经断开");
+		}
+		if(outputStream!=null){
+			outputStream.write(bs);
+		}
 	}
 
 }
