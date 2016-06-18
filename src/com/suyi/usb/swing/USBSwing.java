@@ -67,7 +67,7 @@ public class USBSwing extends JFrame {
 	// ,"调试"
 	};
 	String dangqian = "当前：";
-	String morenIndex="X1";
+	String morenIndex = "X1";
 	Color colors[] = new Color[] { Color.decode("#FFFFFF"),
 			Color.decode("#C2C2C2"), Color.decode("#636363"),
 			Color.decode("#000000"), };
@@ -95,7 +95,10 @@ public class USBSwing extends JFrame {
 			"lev3", "max" };
 	boolean[] settingChangeS = new boolean[] { false, true, true, true, true,
 			false };
-	int[] settingLeave = new int[] { 0, 1000, 2000, 4000, 5000, 6000 };
+
+	static final int[] settingLeaveStatic = new int[] { 0, 1000, 2000, 4000,
+			5000, 6000 };
+	int[] settingLeave = settingLeaveStatic;
 	JTextArea[] mJTextAreaForLevs = new JTextArea[settingStrings.length];// 当前
 	JButton buttonSetting;
 
@@ -790,7 +793,7 @@ public class USBSwing extends JFrame {
 		// TODO Auto-generated method stub
 		for (int i = 1; i <= 4; i++) {
 			try {
-				ProProperty.putKeyValue(Constant.settingLev + name +"_"+ i,
+				ProProperty.putKeyValue(Constant.settingLev + name + "_" + i,
 						settingLeave[i] + "");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -800,26 +803,31 @@ public class USBSwing extends JFrame {
 	}
 
 	String XYLe;
+
 	void getSettingInfoXY(String name) {
-		
 		if (leveMap.containsKey(name)) {
-			settingLeave= leveMap.get(name);
-		}else{
+			settingLeave = leveMap.get(name);
+		} else {
+			int[] settingLeave33 = settingLeaveStatic.clone(); 
 			for (int i = 1; i <= 4; i++) {
 				try {
-					String info = ProProperty.getKeyValue(Constant.settingLev + name +"_"+ i);
+					String info = ProProperty.getKeyValue(Constant.settingLev
+							+ name + "_" + i);
 					if (!StringUtil.isEmpty(info)) {
 						int in = Integer.parseInt(info);
-						settingLeave[i] = in;
+						settingLeave33[i] = in;
+					} else {
+						settingLeave33[i] = settingLeaveStatic[i];
 					}
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
-			leveMap.put(name, settingLeave);
+			leveMap.put(name, settingLeave33);
+			settingLeave=settingLeave33;
 		}
-		XYLe=name;
+		XYLe = name;
 	}
 
 	private void showSettingErr(String string) {
