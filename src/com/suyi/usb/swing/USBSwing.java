@@ -56,20 +56,20 @@ public class USBSwing extends JFrame {
 	static int pinontSize = pinontX * pinontY;
 	static boolean isShowLine = true;// 展示数字标签
 	static boolean isShowLeft = true;// 展示左侧
-	static boolean isAutoShow = true;// 测试自动刷新
-	static boolean isRecodeXY = false;// 自动记录位置
+	static boolean isAutoShow = false;// 测试自动刷新
+	static boolean isRecodeXY = true;// 自动记录位置
 	static int logsSize = 5;
 
 	String[] buttonStrings = new String[] { "开始采集", "停止采集", "图像输出", "清除", "退出"
-//			,"调试"
-			};
+	// ,"调试"
+	};
 	Color colors[] = new Color[] { Color.decode("#FFFFFF"),
 			Color.decode("#C2C2C2"), Color.decode("#636363"),
 			Color.decode("#000000"), };
 	Color bgColor = Color.decode("#8FBC8F");
 	SimpleDateFormat sdf = new SimpleDateFormat("yyyy_mm_dd_HH_mm_ss");
 	SimpleDateFormat sdfNo = new SimpleDateFormat("HH_mm_ss_SSS");
-	JComponent bts[][];
+	JComponent mButtons[][];// 数据区域
 	byte[] showBs;
 	JButton mJButtons[] = new JButton[buttonStrings.length];
 	boolean isShow = true;// 立即
@@ -324,32 +324,49 @@ public class USBSwing extends JFrame {
 		showLog("获取到新数据");
 		int i = 0;
 		for (byte b : showBs) {
-			bts[i++ / pinontX][i % pinontY].setBackground(colors[b]);
+			mButtons[i++ / pinontX + 1][i % pinontY + 1]
+					.setBackground(colors[b]);
 		}
 	}
 
 	private Component getMainPanel() {
-		pMain = new JPanel(new GridLayout(pinontX, pinontY, 2, 2));
+		pMain = new JPanel(new GridLayout(pinontX + 1, pinontY + 1, 2, 2));
 		pMain.setBackground(bgColor);
 
-		bts = new JComponent[pinontX][pinontY]; // 创建按钮数组
-		for (int Y = 0; Y < pinontY; Y++) {
-			for (int X = 0; X < pinontX; X++) {
-				JTextArea mJTextArea = new JTextArea();
+		mButtons = new JComponent[pinontX + 1][pinontY + 1]; // 创建按钮数组
+		for (int Y = 0; Y < pinontY + 1; Y++) {
+			for (int X = 0; X < pinontX + 1; X++) {
+				
+				JComponent mJComponent=null;
 				// mJTextArea.setHorizontalAlignment(JTextField.CENTER);
 				if (isShowLine) {
-					mJTextArea.setText((X + 1) + " " + (Y + 1));
-					mJTextArea.setForeground(Color.blue);
-					Font font = new Font("宋体", Font.PLAIN, 10);
-					mJTextArea.setFont(font);
+					Font font = null;
+					if (X == 0 || Y == 0) {
+						// mJTextArea.setBackground(Color.blue);
+						JButton	mJButton=new JButton();
+						String t=(X == 0 ? "Y" + (Y + 1) : "X" + (X + 1));
+						mJButton.setText(t);
+//						font = new Font("宋体", Font.PLAIN, 13);
+						mJButton.addActionListener(new SettingActionButton(t));
+						mJComponent=	mJButton;		
+//						mJComponent.setFont(font);
+					} else {
+						JTextArea mJTextArea = new JTextArea();
+						font = new Font("宋体", Font.PLAIN, 10);
+						mJTextArea.setText((X) + " " + (Y));
+						mJTextArea.setForeground(Color.blue);
+						mJComponent=mJTextArea;
+						mJComponent.setFont(font);
+					}
+					
 				}
-				bts[X][Y] = mJTextArea;
+				mButtons[X][Y] = mJComponent;
 			}
 		}
 
-		for (int Y = pinontY - 1; Y >= 0; Y--) {
-			for (int X = 0; X < pinontX; X++) {
-				pMain.add(bts[X][Y]);// 添加早在上面
+		for (int Y = pinontY + 1 - 1; Y >= 0; Y--) {// 全部添加上去
+			for (int X = 0; X < pinontX + 1; X++) {
+				pMain.add(mButtons[X][Y]);// 添加早在上面
 			}
 		}
 
@@ -489,6 +506,28 @@ public class USBSwing extends JFrame {
 		}
 	}
 
+	
+	public class SettingActionButton implements ActionListener {
+		String name;
+
+		public SettingActionButton(String name) {
+			// TODO Auto-generated constructor stub
+			super();
+			this.name = name;
+		}
+
+		public void actionPerformed(ActionEvent e) {
+			String indexS=null;
+			if(name.startsWith("X")){
+				indexS=name.replace("X", "");
+			}else{
+				indexS=name.replace("Y", "");
+			}
+			int index=Integer.parseInt(indexS);
+			
+		}
+	}
+
 	private void doActione(int index) {
 		showLog(index < buttonStrings.length ? buttonStrings[index] : "未知操作");
 
@@ -554,11 +593,11 @@ public class USBSwing extends JFrame {
 			System.exit(1);
 			break;
 		case 5:
-			 java.awt.EventQueue.invokeLater(new Runnable() {
-		            public void run() {
-		                new SerialPortsWindLines(false).setVisible(true);
-		            }
-		        });
+			java.awt.EventQueue.invokeLater(new Runnable() {
+				public void run() {
+					new SerialPortsWindLines(false).setVisible(true);
+				}
+			});
 			break;
 		default:
 			break;
