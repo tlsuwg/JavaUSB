@@ -14,6 +14,7 @@ import gnu.io.UnsupportedCommOperationException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,18 +24,20 @@ import java.util.TooManyListenersException;
 import com.hitangjun.desk.Log;
 import com.hitangjun.desk.SerialPortException;
 import com.hitangjun.desk.SerialPortReader;
+import com.suyi.usb.util.SuLog;
 
 /**
  * 串口数据读取类,用于windows的串口数据读取
  * 
  */
 public class SuSerialPortLinker extends Observable {
-	
+
 	CommPortIdentifier portId;
-	int delayRead = 150;
+	int delayRead = 15;
 	int numBytes; // buffer中的实际数据字节数
 	private static byte[] readBuffer = new byte[4096]; // 4k的buffer空间,缓存串口读入的数据
 	InputStream inputStream;
+	OutputStream outputStream;
 	SerialPort serialPort;
 	// 端口是否打开了
 	volatile boolean isOpen = false;
@@ -45,13 +48,19 @@ public class SuSerialPortLinker extends Observable {
 	public boolean isOpen() {
 		return isOpen;
 	}
-	
+
 	private void setIsOpen(boolean b) {
 		// TODO Auto-generated method stub
-		this.isOpen=b;
+		this.isOpen = b;
 		notifyObservers(isOpen);
 	}
 
+	@Override
+	public void notifyObservers(Object arg) {
+		// TODO Auto-generated method stub
+		setChanged();
+		super.notifyObservers(arg);
+	}
 
 	/**
 	 * 初始化端口操作的参数.
@@ -61,7 +70,6 @@ public class SuSerialPortLinker extends Observable {
 	 */
 	public SuSerialPortLinker() {
 		super();
-		setIsOpen(false);
 	}
 
 	public boolean isOpening() {
@@ -76,13 +84,13 @@ public class SuSerialPortLinker extends Observable {
 			HashSet<CommPortIdentifier> mset = SuPortManger
 					.getAvailableSerialPorts();
 			if (mset != null) {
-				notifyObservers("查询到com端口:"+mset.size());
+				notifyObservers("查询到com端口数量:" + mset.size());
 				boolean is = false;
 				Iterator<CommPortIdentifier> it = mset.iterator();
 				while (it.hasNext()) {
 					CommPortIdentifier com = it.next();
 					try {
-						notifyObservers("尝试链接"+com.getName());
+						notifyObservers("尝试链接" + com.getName());
 						open(1000, com.getName(), 9600, 8, 1, "NONE", 150);
 						is = true;
 						break;
@@ -128,6 +136,7 @@ public class SuSerialPortLinker extends Observable {
 			portId = CommPortIdentifier.getPortIdentifier(port);
 			serialPort = (SerialPort) portId.open("SerialPortLinker", timeout);
 			inputStream = serialPort.getInputStream();
+			outputStream=serialPort.getOutputStream();
 			serialPort.addEventListener(new SerialPortEventListener() {
 				@Override
 				public void serialEvent(SerialPortEvent ev) {
@@ -138,6 +147,7 @@ public class SuSerialPortLinker extends Observable {
 			serialPort.notifyOnDataAvailable(true);
 			serialPort.setSerialPortParams(rate, dataBits, stopBits, parityInt);
 			setIsOpen(true);
+			SuLog.Log("OKOKOKO");
 
 		} catch (PortInUseException e) {
 			throw new SerialPortException("端口" + port + "已经被占用");
@@ -161,17 +171,20 @@ public class SuSerialPortLinker extends Observable {
 			try {
 				serialPort.notifyOnDataAvailable(false);
 				serialPort.removeEventListener();
+				outputStream.close();
+				outputStream=null;
 				inputStream.close();
+				inputStream=null;
 				serialPort.close();
 				isOpen = false;
+				
 			} catch (IOException ex) {
 				throw new SerialPortException("关闭串口失败");
 			}
-			setIsOpen( false);
+			setIsOpen(false);
 		}
 	}
 
-	
 	/**
 	 * Method declaration
 	 * 
@@ -224,6 +237,16 @@ public class SuSerialPortLinker extends Observable {
 		byte[] temp = new byte[length];
 		System.arraycopy(message, 0, temp, 0, length);
 		notifyObservers(temp);
+	}
+
+	public void send(byte[] bs) throws IOException {
+		if(bs==null)return;
+		if(!isOpen()){
+			throw new IOException("已经断开");
+		}
+		if(outputStream!=null){
+			outputStream.write(bs);
+		}
 	}
 
 }
