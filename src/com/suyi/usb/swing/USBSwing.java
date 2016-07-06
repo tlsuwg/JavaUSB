@@ -91,13 +91,14 @@ public class USBSwing extends JFrame {
 
 	// ===========================设置
 	String settingName = "设置";
-	String[] settingStrings = new String[] { "min", "lev0", "lev1", "lev2",
-			"lev3", "max" };
-	boolean[] settingChangeS = new boolean[] { false, true, true, true, true,
+	static	String[] settingStrings = new String[] { "min", "lev0", "lev1", "lev2",
+			 "max" };
+	static final int[] settingLeaveStatic = new int[] { 50, 200, 500, 800,
+		 1000 };
+	static boolean[] settingChangeS = new boolean[] { false, true, true, true,
 			false };
 
-	static final int[] settingLeaveStatic = new int[] { 0, 1000, 2000, 4000,
-			5000, 6000 };
+	
 	int[] settingLeave = settingLeaveStatic;
 	JTextArea[] mJTextAreaForLevs = new JTextArea[settingStrings.length];// 当前
 	JButton buttonSetting;
@@ -576,7 +577,7 @@ public class USBSwing extends JFrame {
 		JPanel settingPanel = new JPanel();
 		settingPanel.setLayout(new BoxLayout(settingPanel, BoxLayout.X_AXIS));
 
-		Label mLabelnull = new Label();
+		Label mLabelnull = new Label();//设置前面
 		mLabelnull.setText(" ");
 		mLabelnull.setBackground(colors);
 		settingPanel.add(mLabelnull);
@@ -589,7 +590,6 @@ public class USBSwing extends JFrame {
 		mJTextAreaForLevs[i] = mLog;
 		if (isChange) {
 			mLog.setBackground(Color.white);
-
 		} else {
 			mLog.setBackground(Color.gray);
 		}
@@ -809,7 +809,7 @@ public class USBSwing extends JFrame {
 			settingLeave = leveMap.get(name);
 		} else {
 			int[] settingLeave33 = settingLeaveStatic.clone(); 
-			for (int i = 1; i <= 4; i++) {
+			for (int i = 1; i <settingLeaveStatic.length-1; i++) {
 				try {
 					String info = ProProperty.getKeyValue(Constant.settingLev
 							+ name + "_" + i);
