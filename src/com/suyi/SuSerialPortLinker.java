@@ -91,7 +91,7 @@ public class SuSerialPortLinker extends Observable {
 					CommPortIdentifier com = it.next();
 					try {
 						notifyObservers("≥¢ ‘¡¥Ω”" + com.getName());
-						open(1000, com.getName(), 9600, 8, 1, "NONE", 150);
+						open(1000, com.getName(), 115200, 8, 1, "NONE", 150);
 						is = true;
 						break;
 					} catch (SerialPortException e) {

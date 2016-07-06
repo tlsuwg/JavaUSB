@@ -7,7 +7,8 @@ public class Constant {
 	public static String suHi = "suHi";
 	public static String suX = "suX";
 	public static String suY = "suY";
-	public static String settingLev="suLev";
+	public static String settingLev_MV="suLev_MV";
+	public static String settingLev_Time="suLev_Time";
 	public static final String topTitle = "topTitle";
 
 }
