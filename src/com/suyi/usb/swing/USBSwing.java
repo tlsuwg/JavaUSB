@@ -86,11 +86,12 @@ public class USBSwing extends JFrame {
 
 	// ===========================…Ë÷√
 	String settingName = "…Ë÷√";
-	String[] settingStrings = new String[] { "min", "lev0", "lev1", "lev2",
-			"lev3", "max" };
-	boolean[] settingChangeS = new boolean[] { false, true, true, true, true,
+	static String[] settingStrings = new String[] { "min", "lev0", "lev1", "lev2",
+			 "max" };
+	static boolean[] settingChangeS = new boolean[] { false, true, true, true, 
 			false };
-	int[] settingLeave = new int[] { 0, 1000, 2000, 4000, 5000, 6000 };
+	static int[] settingLeave = new int[] { 50, 200, 600, 800, 1000 };
+	
 	JTextArea[] mJTextAreaForLevs = new JTextArea[settingStrings.length];
 	JButton buttonSetting;
 
