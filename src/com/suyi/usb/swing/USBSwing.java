@@ -59,9 +59,35 @@ public class USBSwing extends JFrame {
 	static boolean isShowLeft = true;// 展示左侧
 	static boolean isAutoShow = false;// 测试自动刷新
 	static boolean isRecodeXY = true;// 自动记录位置
+	static boolean isXSetting = false;
 	static int logsSize = 5;
 
-	String[] buttonStrings = new String[] { "开始采集", "停止采集", "图像输出", "清除", "退出"
+	// ===========================设置
+	static String settingNameMV = "设置电压";
+	static String[] settingStringsMV = new String[] { "min", "lev0", "lev1",
+			"lev2", "max" };
+	static boolean[] settingChangeSMV = new boolean[] { false, true, true,
+			true, true };
+	static short[] settingLeaveMV = new short[] { 50 - 1, 200, 600, 800,1000 + 1 };
+
+	// ===========================设置
+
+	static String settingNameTime = "设置时间";
+	static String[] settingStringsTime = new String[] { "min", "lev0", "lev1",
+			"lev2", "max" };
+	static boolean[] settingChangeSTime = new boolean[] { false, true, true,
+			true, true };
+	static short[] settingLeaveTime = new short[] { 30 - 1, 80, 120, 160,
+			200 + 1 };
+
+	// ===========================
+
+	static byte[] bsStart = new byte[] { 0x79, 0x03, 0x11, 0x00, 0x66 };
+	static byte[] bsStop = new byte[] { 0x79, 0x03, 0x11, 0x01, 0x66 };
+	static byte[] bsClean = new byte[] { 0x79, 0x03, 0x11, 0x02, 0x66 };
+
+	static String[] buttonStrings = new String[] { "开始采集", "停止采集", "图像输出",
+			"清除", "退出"
 	// ,"调试"
 	};
 
@@ -83,29 +109,6 @@ public class USBSwing extends JFrame {
 	int screenWidth, screenHeight;
 
 	SuSerialPortLinker mSuSerialPortLinker;
-
-	// ===========================设置
-	String settingNameMV = "设置mv";
-	static String[] settingStringsMV = new String[] { "min", "lev0", "lev1",
-			"lev2", "max" };
-	static boolean[] settingChangeSMV = new boolean[] { false, true, true,
-			true, false };
-	static short[] settingLeaveMV = new short[] { 50, 200, 600, 800, 1000 };
-
-	// ===========================设置
-
-	String settingNameTime = "设置time";
-	static String[] settingStringsTime = new String[] { "min", "lev0", "lev1",
-			"lev2", "max" };
-	static boolean[] settingChangeSTime = new boolean[] { false, true, true,
-			true, false };
-	static short[] settingLeaveTime = new short[] { 30, 80, 120, 160, 200 };
-
-	// ===========================
-
-	static byte[] bsStart = new byte[] { 0x79, 0x03, 0x11, 0x00, 0x66 };
-	static byte[] bsStop = new byte[] { 0x79, 0x03, 0x11, 0x01, 0x66 };
-	static byte[] bsClean = new byte[] { 0x79, 0x03, 0x11, 0x02, 0x66 };
 
 	JTextArea[] mJTextAreaForLevsMV = new JTextArea[settingStringsMV.length];
 	JTextArea[] mJTextAreaForLevsTime = new JTextArea[settingStringsTime.length];
@@ -287,7 +290,81 @@ public class USBSwing extends JFrame {
 					// SuLog.Log(arg.toString());
 					if (arg != null) {
 						if (arg instanceof byte[]) {
+
+							byte[] bs = (byte[]) arg;
+							if (bs == null && bs.length < 5) {
+								showLog("数据错误");
+								return;
+							}
+							if (bs[0] != 0x86) {
+								showLog("数据不规范");
+								return;
+							}
+
+							// 1.参数设置：0X79,0X0D,0X10,电压等级1高位数据，电压等级1低位数据，电压等级2高位数据，电压等级2低位数据，电压等级3高位数据，电压等级3低位数据，
+							//
+							// 主板回码：0X86,0x03,0x10,0X88,0X66.
+							//
+							// 2.开始采集：0X79,0X03,0X11,0X00,0X66
+							//
+							// 主板回码：0X86,0x03,0x11,0X00,0X66.
+							//
+							// 3.停止采集：0X79,0X03,0X11,0x01,0x66.
+							//
+							// 主板回码：0X86,0x03,0x11,0X01,0X66.
+							//
+							// 4.清除数据：0X79,0X03,0X11,0x02,0x66.
+							//
+							// 主板回码：0X86,0x03,0x11,0X02,0X66.
+							//
+
+							//
+							byte index_type = bs[2];
+							switch (index_type) {
+							case 0x10:
+								showLog("回馈：设置成功");
+								break;
+							case 0x11:
+								byte index_3 = bs[3];
+
+								switch (index_3) {
+								case 0X00:
+									showLog("回馈：开始采集");
+									break;
+								case 0X01:
+									showLog("回馈：停止采集");
+									break;
+								case 0X02:
+									showLog("回馈：清除");
+									break;
+
+								default:
+									break;
+								}
+								showLog("设置成功");
+								break;
+
+							case 0x02:
+								// 主板 --------> PC软件
+								//
+								// 1.显示数据：0X86,0X03,0X02,位数据，等级数据（位数据0-255，等级数据1-3）
+								//
+								// 指令说明：头码 + 长度 + 命令 + 数据1 + ...... 数据n
+								int length = bs[1] - 1;
+								for (int i = 0; i < length / 2; i++) {
+									byte index = bs[2 + i];
+									byte value = bs[3 + i];
+
+								}
+
+								break;
+
+							default:
+								break;
+							}
+
 							setColors((byte[]) arg, false);
+
 						} else if (arg instanceof Boolean) {
 							setLink((Boolean) arg);
 							sendSetting();
@@ -300,7 +377,9 @@ public class USBSwing extends JFrame {
 				}
 			});
 		}
-		if (!mSuSerialPortLinker.isOpen() && !mSuSerialPortLinker.isOpening())
+		
+		
+		if (!mSuSerialPortLinker.isOpen() && !mSuSerialPortLinker.isOpening()){
 			try {
 				mSuSerialPortLinker.startOpen();
 			} catch (Exception e) {
@@ -309,6 +388,9 @@ public class USBSwing extends JFrame {
 				showLog(e.getMessage());
 				setLink(false);
 			}
+		}else{
+			sendByte(bsStart);
+		}
 	}
 
 	private void initView() {
@@ -465,12 +547,20 @@ public class USBSwing extends JFrame {
 		eastPanel.setLayout(new BoxLayout(eastPanel, BoxLayout.Y_AXIS));
 		// ==================
 		eastPanel.add(Box.createVerticalStrut(5));
-
 		// ================== 横向设置lev
 		{
-			JPanel mMainSettingPanel = new JPanel();
+			
+			JPanel	mMainSettingPanel=null;
+			if(isXSetting){
+//			横方式
+			 mMainSettingPanel = new JPanel();
 			mMainSettingPanel.setLayout(new BoxLayout(mMainSettingPanel,
 					BoxLayout.X_AXIS));
+			}else{
+			mMainSettingPanel=eastPanel;
+			}
+			
+			
 			// =========// 设置mv
 			{
 				JPanel settingPanel = new JPanel();
@@ -478,7 +568,7 @@ public class USBSwing extends JFrame {
 						BoxLayout.Y_AXIS));
 
 				Label mLabel = new Label();
-				mLabel.setText("设置级别(mv)：");
+				mLabel.setText("设置级别(电压mv)：");
 				settingPanel.add(mLabel);
 
 				for (int i = 0; i < settingStringsMV.length; i++) {
@@ -508,7 +598,7 @@ public class USBSwing extends JFrame {
 				settingPanel.setLayout(new BoxLayout(settingPanel,
 						BoxLayout.Y_AXIS));
 				Label mLabel = new Label();
-				mLabel.setText("设置级别(time)：");
+				mLabel.setText("设置级别(时间ms)：");
 				settingPanel.add(mLabel);
 
 				for (int i = 0; i < settingStringsTime.length; i++) {
@@ -532,7 +622,10 @@ public class USBSwing extends JFrame {
 				mMainSettingPanel.add(settingPanel);
 
 			}
+//			横方式
+			if(isXSetting){
 			eastPanel.add(mMainSettingPanel);
+			}
 		}
 
 		// ==================
@@ -613,7 +706,7 @@ public class USBSwing extends JFrame {
 		settingPanel.add(mLabel);
 
 		JTextArea mLog = new JTextArea();
-		
+
 		mJTextAreaForLevsMV[i] = mLog;
 		if (isChange) {
 			mLog.setBackground(Color.white);
@@ -703,13 +796,14 @@ public class USBSwing extends JFrame {
 			setButtonAble(1, 0, 1, 1, 1);
 			if (!isAutoShow && mSuSerialPortLinker != null
 					&& mSuSerialPortLinker.isOpen()) {
-				try {
-					sendByte(bsStop);
-					mSuSerialPortLinker.close();
-				} catch (SerialPortException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				
+				sendByte(bsStop);
+//				try {
+////					mSuSerialPortLinker.close();
+//				} catch (SerialPortException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
 				mSuSerialPortLinker = null;
 			}
 
