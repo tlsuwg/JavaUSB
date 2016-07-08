@@ -17,11 +17,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Stack;
@@ -36,13 +39,17 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
 
-import com.hitangjun.desk.SerialPortException;
 import com.hitangjun.desk.SerialPortsWindLines;
+import com.suyi.SuPortManger;
 import com.suyi.SuSerialPortLinker;
 import com.suyi.usb.util.Constant;
 import com.suyi.usb.util.FileUtil;
@@ -68,7 +75,8 @@ public class USBSwing extends JFrame {
 			"lev2", "max" };
 	static boolean[] settingChangeSMV = new boolean[] { false, true, true,
 			true, true };
-	static short[] settingLeaveMV = new short[] { 50 - 1, 200, 600, 800,1000 + 1 };
+	static short[] settingLeaveMV = new short[] { 50 - 1, 200, 600, 800,
+			1000 + 1 };
 
 	// ===========================设置
 
@@ -98,10 +106,16 @@ public class USBSwing extends JFrame {
 	SimpleDateFormat sdf = new SimpleDateFormat("yyyy_mm_dd_HH_mm_ss");
 	SimpleDateFormat sdfNo = new SimpleDateFormat("HH_mm_ss_SSS");
 	JComponent bts[][];
+
+	private javax.swing.JComboBox portComboBox;
+
 	byte[] showBs;
+	byte[] dataBs = new byte[pinontSize];
+
 	JButton mJButtons[] = new JButton[buttonStrings.length];
 	boolean isShow = true;// 立即
 	JTextArea mLog;
+	JTextPane mLogErr;
 	// JTextArea mJTextAreaForLink;
 	JButton linkStatusButton;
 	JPanel pMain;
@@ -114,6 +128,8 @@ public class USBSwing extends JFrame {
 	JTextArea[] mJTextAreaForLevsTime = new JTextArea[settingStringsTime.length];
 
 	JButton buttonSettingMV, buttonSettingTime;
+
+	String portCom;
 
 	// =============================设置
 	public USBSwing() throws HeadlessException {
@@ -293,11 +309,11 @@ public class USBSwing extends JFrame {
 
 							byte[] bs = (byte[]) arg;
 							if (bs == null && bs.length < 5) {
-								showLog("数据错误");
+								showLogErr("数据错误");
 								return;
 							}
 							if (bs[0] != 0x86) {
-								showLog("数据不规范");
+								showLogErr("数据不规范");
 								return;
 							}
 
@@ -326,7 +342,6 @@ public class USBSwing extends JFrame {
 								break;
 							case 0x11:
 								byte index_3 = bs[3];
-
 								switch (index_3) {
 								case 0X00:
 									showLog("回馈：开始采集");
@@ -354,16 +369,15 @@ public class USBSwing extends JFrame {
 								for (int i = 0; i < length / 2; i++) {
 									byte index = bs[2 + i];
 									byte value = bs[3 + i];
-
+									showLog(index + "=" + value);
+									dataBs[index] = value;
 								}
-
+								setColors(dataBs, false);
 								break;
 
 							default:
 								break;
 							}
-
-							setColors((byte[]) arg, false);
 
 						} else if (arg instanceof Boolean) {
 							setLink((Boolean) arg);
@@ -377,18 +391,17 @@ public class USBSwing extends JFrame {
 				}
 			});
 		}
-		
-		
-		if (!mSuSerialPortLinker.isOpen() && !mSuSerialPortLinker.isOpening()){
+
+		if (!mSuSerialPortLinker.isOpen() && !mSuSerialPortLinker.isOpening()) {
 			try {
-				mSuSerialPortLinker.startOpen();
+				mSuSerialPortLinker.open(1000,portCom, 115200, 8, 1, "NONE", 50);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				// e.printStackTrace();
-				showLog(e.getMessage());
+				showLogErr(e.getMessage());
 				setLink(false);
 			}
-		}else{
+		} else {
 			sendByte(bsStart);
 		}
 	}
@@ -404,7 +417,6 @@ public class USBSwing extends JFrame {
 			linkStatusButton.setBackground(Color.green);
 			showLog("链接建立");
 			setButtonAble(0, 1, 1, 1, 1);
-
 		} else {
 			linkStatusButton.setBackground(Color.red);
 			showLog("链接中断");
@@ -424,6 +436,20 @@ public class USBSwing extends JFrame {
 		if (mLog != null)
 			mLog.setText(ins);
 		SuLog.Log(ins);
+		
+	}
+
+	public void showLogErr(String info) {
+		// if (mLogErr != null)
+		// mLogErr.setText(info);
+		SuLog.Log(info);
+		try {
+			// mLogErr.removeAll();
+			mLogErr.setText("");
+			mLogErr.getDocument()
+					.insertString(0, info, mLogErr.getStyle("red"));
+		} catch (BadLocationException e1) {
+		}
 	}
 
 	public byte[] getBytes() {
@@ -433,10 +459,10 @@ public class USBSwing extends JFrame {
 	public void setColors(byte[] showBs, boolean isMust) {
 		if (!isMust && !isShow)
 			return;
-		if (showBs.length != pinontSize) {
-			showLog("数据出错：" + pinontSize);
-			return;
-		}
+		// if (showBs.length != pinontSize) {
+		// showLog("数据出错：" + pinontSize);
+		// return;
+		// }
 
 		this.showBs = showBs;
 		showLog("获取到新数据");
@@ -549,18 +575,17 @@ public class USBSwing extends JFrame {
 		eastPanel.add(Box.createVerticalStrut(5));
 		// ================== 横向设置lev
 		{
-			
-			JPanel	mMainSettingPanel=null;
-			if(isXSetting){
-//			横方式
-			 mMainSettingPanel = new JPanel();
-			mMainSettingPanel.setLayout(new BoxLayout(mMainSettingPanel,
-					BoxLayout.X_AXIS));
-			}else{
-			mMainSettingPanel=eastPanel;
+
+			JPanel mMainSettingPanel = null;
+			if (isXSetting) {
+				// 横方式
+				mMainSettingPanel = new JPanel();
+				mMainSettingPanel.setLayout(new BoxLayout(mMainSettingPanel,
+						BoxLayout.X_AXIS));
+			} else {
+				mMainSettingPanel = eastPanel;
 			}
-			
-			
+
 			// =========// 设置mv
 			{
 				JPanel settingPanel = new JPanel();
@@ -618,13 +643,12 @@ public class USBSwing extends JFrame {
 				buttonSettingTime.addActionListener(new ActionButton(
 						settingNameTime));
 				settingPanel.add(buttonSettingTime);
-
 				mMainSettingPanel.add(settingPanel);
 
 			}
-//			横方式
-			if(isXSetting){
-			eastPanel.add(mMainSettingPanel);
+			// 横方式
+			if (isXSetting) {
+				eastPanel.add(mMainSettingPanel);
 			}
 		}
 
@@ -637,6 +661,23 @@ public class USBSwing extends JFrame {
 			Label mLabel = new Label();
 			mLabel.setText("日志：");
 			topPanel.add(mLabel);
+
+			// mLogErr = new JTextArea(2, 1);
+			// mLogErr.setLineWrap(true);// 激活自动换行功能
+			// mLogErr.setWrapStyleWord(true);// 激活断行不断字功能
+			// Font font = new Font("宋体", Font.PLAIN, 10);
+			// mLogErr.setBackground(Color.red);
+			// mLogErr.setFont(font);
+
+			mLogErr = new JTextPane();
+			Style def = mLogErr.getStyledDocument().addStyle(null, null);
+			StyleConstants.setFontFamily(def, "verdana");
+			StyleConstants.setFontSize(def, 12);
+			Style normal = mLogErr.addStyle("normal", def);
+			Style s = mLogErr.addStyle("red", normal);
+			StyleConstants.setForeground(s, Color.RED);
+			mLogErr.setParagraphAttributes(normal, true);
+			topPanel.add(mLogErr);
 
 			mLog = new JTextArea(10, 1);
 			mLog.setLineWrap(true);// 激活自动换行功能
@@ -652,6 +693,35 @@ public class USBSwing extends JFrame {
 
 			eastPanel.add(topPanel);
 			eastPanel.add(Box.createVerticalStrut(5));
+
+			HashSet<String> set = SuPortManger.getAllSerialPortNames();
+//			set.add("COM4");
+//			set.add("COM3");
+//			set.add("COM2");
+			set.add("COM1");
+			if (set == null || set.size() == 0) {
+				showLogErr("没有发现可以使用的COM端口");
+			} else {
+				portComboBox = new javax.swing.JComboBox();
+				portComboBox.setModel(new javax.swing.DefaultComboBoxModel(set
+						.toArray()));
+				portComboBox.setToolTipText("选择串口");
+				portComboBox.setName("portComboBox"); // NOI18N
+				portComboBox.addItemListener(new ItemListener() {
+					@Override
+					public void itemStateChanged(ItemEvent e) {
+						// TODO Auto-generated method stub
+						portCom = e.getItem().toString();
+						showLog(portCom);
+					}
+				});
+
+				if (set.size() == 1) {
+					portCom = portComboBox.getSelectedItem().toString();
+					showLog(portCom);
+				}
+				eastPanel.add(portComboBox);
+			}
 		}
 
 		// ==================// mainbutton
@@ -788,6 +858,10 @@ public class USBSwing extends JFrame {
 			setButtonAble(0, 1, 1, 1, 1);
 			if (isAutoShow) {
 			} else {
+				if (StringUtil.isEmpty(portCom)) {
+					showLogErr("COM端口不存在或者未选择");
+					return;
+				}
 				checkLink();
 			}
 			break;
@@ -796,14 +870,14 @@ public class USBSwing extends JFrame {
 			setButtonAble(1, 0, 1, 1, 1);
 			if (!isAutoShow && mSuSerialPortLinker != null
 					&& mSuSerialPortLinker.isOpen()) {
-				
+
 				sendByte(bsStop);
-//				try {
-////					mSuSerialPortLinker.close();
-//				} catch (SerialPortException e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
+				// try {
+				// // mSuSerialPortLinker.close();
+				// } catch (SerialPortException e) {
+				// // TODO Auto-generated catch block
+				// e.printStackTrace();
+				// }
 				mSuSerialPortLinker = null;
 			}
 
@@ -835,8 +909,8 @@ public class USBSwing extends JFrame {
 			break;
 		case 3:
 			// isShow=false;
-			byte[] showBs = new byte[pinontSize];
-			setColors(showBs, true);
+			dataBs = new byte[pinontSize];
+			setColors(dataBs, true);
 			logs.clear();
 			sendByte(bsClean);
 			showLog(index < buttonStrings.length ? buttonStrings[index]
@@ -996,7 +1070,7 @@ public class USBSwing extends JFrame {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			showLog("错误：" + e.getMessage());
+			showLogErr("错误：" + e.getMessage());
 		}
 
 	}
@@ -1009,10 +1083,10 @@ public class USBSwing extends JFrame {
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-				showLog("发送失败" + e.getMessage());
+				showLogErr("发送失败" + e.getMessage());
 			}
 		} else {
-			showLog("链接不存在");
+			showLogErr("链接不存在");
 		}
 	}
 

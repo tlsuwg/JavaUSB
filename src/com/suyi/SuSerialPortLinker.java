@@ -76,14 +76,19 @@ public class SuSerialPortLinker extends Observable {
 		// TODO Auto-generated method stub
 		return isOpening;
 	}
+	
+	
+	
 
-	public void startOpen() throws Exception {
+	
+	@Deprecated
+	 void startOpen() throws Exception {
 		// TODO Auto-generated method stub
 		isOpening = true;
 		try {
 			HashSet<CommPortIdentifier> mset = SuPortManger
 					.getAvailableSerialPorts();
-			if (mset != null) {
+			if (mset != null&&mset.size()>0) {
 				notifyObservers("查询到com端口数量:" + mset.size());
 				boolean is = false;
 				Iterator<CommPortIdentifier> it = mset.iterator();
@@ -91,7 +96,7 @@ public class SuSerialPortLinker extends Observable {
 					CommPortIdentifier com = it.next();
 					try {
 						notifyObservers("尝试链接" + com.getName());
-						open(1000, com.getName(), 115200, 8, 1, "NONE", 150);
+						open(1000, com.getName(), 115200, 8, 1, "NONE", 50);
 						is = true;
 						break;
 					} catch (SerialPortException e) {
@@ -163,7 +168,6 @@ public class SuSerialPortLinker extends Observable {
 			throw new SerialPortException("失败" + e.getMessage());
 			// System.exit(0);
 		}
-
 	}
 
 	public void close() throws SerialPortException {
