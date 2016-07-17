@@ -48,6 +48,7 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 
+import com.hitangjun.desk.SerialPortException;
 import com.hitangjun.desk.SerialPortsWindLines;
 import com.suyi.SuPortManger;
 import com.suyi.SuSerialPortLinker;
@@ -66,27 +67,24 @@ public class USBSwing extends JFrame {
 	static boolean isShowLeft = true;// 展示左侧
 	static boolean isAutoShow = false;// 测试自动刷新
 	static boolean isRecodeXY = true;// 自动记录位置
-	static boolean isXSetting = false;
-	static int logsSize = 5;
+	static boolean isXSetting = true;
+	static int logsSize = 10;
 
 	// ===========================设置
 	static String settingNameMV = "设置电压";
 	static String[] settingStringsMV = new String[] { "min", "lev0", "lev1",
-			"lev2", "max" };
+			"lev2"};
 	static boolean[] settingChangeSMV = new boolean[] { false, true, true,
-			true, true };
-	static short[] settingLeaveMV = new short[] { 50 - 1, 200, 600, 800,
-			1000 + 1 };
+			true };
+	static short[] settingLeaveMV = new short[] { 50 - 1, 200, 600, 800
+			 };
 
 	// ===========================设置
 
 	static String settingNameTime = "设置时间";
-	static String[] settingStringsTime = new String[] { "min", "lev0", "lev1",
-			"lev2", "max" };
-	static boolean[] settingChangeSTime = new boolean[] { false, true, true,
-			true, true };
-	static short[] settingLeaveTime = new short[] { 30 - 1, 80, 120, 160,
-			200 + 1 };
+	static String[] settingStringsTime = new String[] { "min", "lev0", "lev1","lev2" };
+	static boolean[] settingChangeSTime = new boolean[] { false, true, true,true };
+	static short[] settingLeaveTime = new short[] { 30 - 1, 80, 120, 160};
 
 	// ===========================
 
@@ -219,7 +217,7 @@ public class USBSwing extends JFrame {
 							showBs[i] = (byte) (Math.random() * 4);
 						}
 						setLink(showBs[0] > 2);
-						setColors(showBs, false);
+						setColors(showBs, true);
 						try {
 							Thread.sleep(2000);
 						} catch (InterruptedException e) {
@@ -306,16 +304,19 @@ public class USBSwing extends JFrame {
 					// SuLog.Log(arg.toString());
 					if (arg != null) {
 						if (arg instanceof byte[]) {
-
+							
 							byte[] bs = (byte[]) arg;
 							if (bs == null && bs.length < 5) {
 								showLogErr("数据错误");
 								return;
 							}
-							if (bs[0] != 0x86) {
-								showLogErr("数据不规范");
-								return;
-							}
+							
+							System.out.println("getbyte in UI:"+StringUtil.getByte(bs));
+							
+//							if (bs[0] !=0x86) {
+//								showLogErr("数据不规范"+StringUtil.getByte(bs));
+//								return;
+//							}
 
 							// 1.参数设置：0X79,0X0D,0X10,电压等级1高位数据，电压等级1低位数据，电压等级2高位数据，电压等级2低位数据，电压等级3高位数据，电压等级3低位数据，
 							//
@@ -360,17 +361,25 @@ public class USBSwing extends JFrame {
 								break;
 
 							case 0x02:
+								
+								showLog("数据来了："+StringUtil.getByte(bs));
 								// 主板 --------> PC软件
 								//
 								// 1.显示数据：0X86,0X03,0X02,位数据，等级数据（位数据0-255，等级数据1-3）
 								//
 								// 指令说明：头码 + 长度 + 命令 + 数据1 + ...... 数据n
 								int length = bs[1] - 1;
+								SuLog.Log("数据长度："+length);
 								for (int i = 0; i < length / 2; i++) {
-									byte index = bs[2 + i];
-									byte value = bs[3 + i];
-									showLog(index + "=" + value);
-									dataBs[index] = value;
+									byte index = bs[3 + i];
+									byte value = bs[4 + i];
+									
+									byte y=(byte) ((index>>4)&0x0f);
+									byte x=(byte) (index&0x0f);
+									int nub=y*16+x;
+									showLog("数据："+ value+"; "+StringUtil.get64(index)+"("+x+","+y+")");
+
+									dataBs[nub] = value;
 								}
 								setColors(dataBs, false);
 								break;
@@ -382,6 +391,7 @@ public class USBSwing extends JFrame {
 						} else if (arg instanceof Boolean) {
 							setLink((Boolean) arg);
 							sendSetting();
+							showLog("发送启动命令");
 							sendByte(bsStart);
 						} else if (arg instanceof String) {
 							showLog((String) arg);
@@ -394,7 +404,7 @@ public class USBSwing extends JFrame {
 
 		if (!mSuSerialPortLinker.isOpen() && !mSuSerialPortLinker.isOpening()) {
 			try {
-				mSuSerialPortLinker.open(1000,portCom, 115200, 8, 1, "NONE", 50);
+				mSuSerialPortLinker.open(1000,portCom, 115200, 8, 1, "NONE", 10);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				// e.printStackTrace();
@@ -427,6 +437,8 @@ public class USBSwing extends JFrame {
 	private Stack<String> logs = new Stack<String>();
 
 	public void showLog(String info) {
+		SuLog.Log(info);
+		
 		logs.add(info);
 		if (logs.size() > logsSize) {
 			logs.remove(0);
@@ -435,8 +447,8 @@ public class USBSwing extends JFrame {
 				+ StringUtil.getStrings(logs);
 		if (mLog != null)
 			mLog.setText(ins);
-		SuLog.Log(ins);
 		
+//		SuLog.Log(ins);
 	}
 
 	public void showLogErr(String info) {
@@ -457,8 +469,10 @@ public class USBSwing extends JFrame {
 	}
 
 	public void setColors(byte[] showBs, boolean isMust) {
-		if (!isMust && !isShow)
+		if (!isMust && !isShow){
+			showLog("拒绝展示");
 			return;
+		}
 		// if (showBs.length != pinontSize) {
 		// showLog("数据出错：" + pinontSize);
 		// return;
@@ -467,8 +481,16 @@ public class USBSwing extends JFrame {
 		this.showBs = showBs;
 		showLog("获取到新数据");
 		int i = 0;
+		
+		
 		for (byte b : showBs) {
-			bts[i++ / pinontX][i % pinontY].setBackground(colors[b]);
+			int y=(i / pinontY);
+			int x=(i % pinontX);
+//			if(b!=0){
+//			SuLog.Log(i+"  X"+x+":Y"+y+"  "+b);
+//			}
+			bts[x][y].setBackground(colors[b]);
+			i++;
 		}
 	}
 
@@ -482,7 +504,7 @@ public class USBSwing extends JFrame {
 				JTextArea mJTextArea = new JTextArea();
 				// mJTextArea.setHorizontalAlignment(JTextField.CENTER);
 				if (isShowLine) {
-					mJTextArea.setText((X + 1) + " " + (Y + 1));
+					mJTextArea.setText((X ) + " " + (Y ));
 					mJTextArea.setForeground(Color.blue);
 					Font font = new Font("宋体", Font.PLAIN, 10);
 					mJTextArea.setFont(font);
@@ -682,7 +704,7 @@ public class USBSwing extends JFrame {
 			mLog = new JTextArea(10, 1);
 			mLog.setLineWrap(true);// 激活自动换行功能
 			mLog.setWrapStyleWord(true);// 激活断行不断字功能
-			Font font = new Font("宋体", Font.PLAIN, 10);
+			Font font = new Font("宋体", Font.PLAIN, 11);
 			mLog.setFont(font);
 
 			topPanel.add(mLog);
@@ -698,7 +720,7 @@ public class USBSwing extends JFrame {
 //			set.add("COM4");
 //			set.add("COM3");
 //			set.add("COM2");
-			set.add("COM1");
+//			set.add("COM1");
 			if (set == null || set.size() == 0) {
 				showLogErr("没有发现可以使用的COM端口");
 			} else {
@@ -716,10 +738,10 @@ public class USBSwing extends JFrame {
 					}
 				});
 
-				if (set.size() == 1) {
+//				if (set.size() == 1) {
 					portCom = portComboBox.getSelectedItem().toString();
 					showLog(portCom);
-				}
+//				}
 				eastPanel.add(portComboBox);
 			}
 		}
@@ -872,12 +894,12 @@ public class USBSwing extends JFrame {
 					&& mSuSerialPortLinker.isOpen()) {
 
 				sendByte(bsStop);
-				// try {
-				// // mSuSerialPortLinker.close();
-				// } catch (SerialPortException e) {
-				// // TODO Auto-generated catch block
-				// e.printStackTrace();
-				// }
+				 try {
+				  mSuSerialPortLinker.close();
+				 } catch (SerialPortException e) {
+				 // TODO Auto-generated catch block
+				 e.printStackTrace();
+				 }
 				mSuSerialPortLinker = null;
 			}
 
@@ -915,6 +937,7 @@ public class USBSwing extends JFrame {
 			sendByte(bsClean);
 			showLog(index < buttonStrings.length ? buttonStrings[index]
 					: "未知操作");
+			mLogErr.setText("");
 			break;
 		case 4:
 			System.exit(1);
@@ -1039,19 +1062,22 @@ public class USBSwing extends JFrame {
 
 	private void sendSetting() {
 		// TODO Auto-generated method stub
+		showLog("发送配置");
 
 		try {
 			int toshortOrInt = 2;// 遍short
-			byte[] bs = new byte[((settingLeaveMV.length - 2) + (settingLeaveTime.length - 2))
+			byte[] bs = new byte[((settingLeaveMV.length - 1) + (settingLeaveTime.length -1))
 					* toshortOrInt];
 			int index = 0;
-			for (int i = 1; i < settingLeaveMV.length - 2; i++) {
+			for (int i = 1; i < settingLeaveMV.length ; i++) {
 				byte[] ints = IntByte.shortToByte(settingLeaveMV[i]);
+				
+				SuLog.Log(settingLeaveMV[i]+" -->>"+StringUtil.getByte(ints));
 				System.arraycopy(ints, 0, bs, index, ints.length);
 				index += ints.length;
 			}
 
-			for (int i = 1; i < settingLeaveTime.length - 2; i++) {
+			for (int i = 1; i < settingLeaveTime.length ; i++) {
 				byte[] ints = IntByte.shortToByte(settingLeaveTime[i]);
 				System.arraycopy(ints, 0, bs, index, ints.length);
 				index += ints.length;
@@ -1066,6 +1092,10 @@ public class USBSwing extends JFrame {
 			bsall[1] = (byte) 0x0D;
 			bsall[02] = (byte) 0x10;
 			System.arraycopy(bs, 0, bsall, 3, bs.length);
+			
+//			79__0d__10__50__00__58__02__50__00__78__00__00__00__00__00__
+			
+			SuLog.Log("发送配置"+StringUtil.getByte(bsall));
 			sendByte(bsall);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -1092,7 +1122,7 @@ public class USBSwing extends JFrame {
 
 	private void saveSettingInfoMV() {
 		// TODO Auto-generated method stub
-		for (int i = 1; i <= 4; i++) {
+		for (int i = 1; i <= settingLeaveMV.length-1; i++) {
 			try {
 				ProProperty.putKeyValue(Constant.settingLev_MV + "" + i,
 						settingLeaveMV[i] + "");
@@ -1105,7 +1135,7 @@ public class USBSwing extends JFrame {
 
 	private void saveSettingInfoTime() {
 		// TODO Auto-generated method stub
-		for (int i = 1; i <= 4; i++) {
+		for (int i = 1; i <= settingLeaveTime.length-1; i++) {
 			try {
 				ProProperty.putKeyValue(Constant.settingLev_Time + "" + i,
 						settingLeaveTime[i] + "");

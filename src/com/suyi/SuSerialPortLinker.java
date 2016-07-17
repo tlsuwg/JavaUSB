@@ -24,6 +24,7 @@ import java.util.TooManyListenersException;
 import com.hitangjun.desk.Log;
 import com.hitangjun.desk.SerialPortException;
 import com.hitangjun.desk.SerialPortReader;
+import com.suyi.usb.util.StringUtil;
 import com.suyi.usb.util.SuLog;
 
 /**
@@ -96,7 +97,7 @@ public class SuSerialPortLinker extends Observable {
 					CommPortIdentifier com = it.next();
 					try {
 						notifyObservers("尝试链接" + com.getName());
-						open(1000, com.getName(), 115200, 8, 1, "NONE", 50);
+						open(1000, com.getName(), 115200, 8, 1, "NONE", 150);
 						is = true;
 						break;
 					} catch (SerialPortException e) {
@@ -221,10 +222,11 @@ public class SuSerialPortLinker extends Observable {
 					numBytes = inputStream.read(readBuffer);
 				}
 				// 打印接收到的字节数据的ASCII码
-				for (int i = 0; i < numBytes; i++) {
-					System.out.println("msg[" + numBytes + "]: ["
-							+ readBuffer[i] + "]:" + (char) readBuffer[i]);
-				}
+//				for (int i = 0; i < numBytes; i++) {
+//					System.out.println("msg[" + numBytes + "]: ["
+//							+ readBuffer[i] + "]:" + (char) readBuffer[i]+
+//							"  64="+StringUtil.get64(readBuffer[i]));
+//				}
 				// numBytes = inputStream.read( readBuffer );
 				changeMessage(readBuffer, numBytes);
 			} catch (IOException e) {
