@@ -63,11 +63,11 @@ public class USBSwing extends JFrame {
 
 	static int pinontX = 16, pinontY = 16;
 	static int pinontSize = pinontX * pinontY;
-	static boolean isShowLine = true;// 展示数字标签
+	static boolean isShowLine = false;// 展示数字标签
 	static boolean isShowLeft = true;// 展示左侧
 	static boolean isAutoShow = false;// 测试自动刷新
 	static boolean isRecodeXY = true;// 自动记录位置
-	static boolean isXSetting = true;
+	static boolean isXSetting = false;
 	static int logsSize = 10;
 
 	// ===========================设置
